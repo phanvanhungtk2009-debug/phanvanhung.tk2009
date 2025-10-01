@@ -20,4 +20,5 @@ export interface EnvironmentalReport {
 export interface ChatMessage {
   role: 'user' | 'model';
   content: string;
+  suggestions?: string[];
 }

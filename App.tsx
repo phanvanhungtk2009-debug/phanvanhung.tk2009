@@ -7,6 +7,8 @@ import ReportDetailModal from './components/ReportDetailModal';
 import HomeView from './components/HomeView';
 import ThankYouView from './components/ThankYouView';
 import FloatingAIAssistant from './components/FloatingAIAssistant';
+import { LogoIcon } from './components/icons/LogoIcon';
+import { TrophyIcon } from './components/icons/TrophyIcon';
 
 // Mock data to simulate existing reports in a database
 const initialReports: EnvironmentalReport[] = [
@@ -61,7 +63,6 @@ const App: React.FC = () => {
       const savedReportsJSON = localStorage.getItem('daNangXanhReports');
       if (savedReportsJSON) {
         const parsedReports = JSON.parse(savedReportsJSON);
-        // Important: Re-hydrate Date objects from ISO strings
         return parsedReports.map((report: EnvironmentalReport) => ({
           ...report,
           timestamp: new Date(report.timestamp),
@@ -70,7 +71,6 @@ const App: React.FC = () => {
     } catch (error) {
       console.error("Lỗi khi tải báo cáo từ localStorage:", error);
     }
-    // If nothing in localStorage or an error occurred, use the initial mock data
     return initialReports;
   });
   
@@ -79,15 +79,25 @@ const App: React.FC = () => {
   const [selectedReport, setSelectedReport] = useState<EnvironmentalReport | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
+  const [userPoints, setUserPoints] = useState<number>(0);
+  const [lastAwardedPoints, setLastAwardedPoints] = useState<number>(0);
   
   // State for the Floating AI Assistant
   const [chatMessages, setChatMessages] = useState<ChatMessage[]>([
-    { role: 'model', content: 'Xin chào! Tôi là Trợ lý AI Xanh. Bạn cần hỏi gì về môi trường hôm nay?' }
+    { 
+      role: 'model', 
+      content: 'Xin chào! Tôi là Trợ lý AI Môi trường Đà Nẵng. Tôi có thể giúp gì cho bạn hôm nay?',
+      suggestions: [
+        "Làm thế nào để phân loại rác đúng cách?",
+        "Báo cáo một điểm xả rác trái phép.",
+        "Các mẹo tiết kiệm nước là gì?",
+      ]
+    }
   ]);
   const [isChatLoading, setIsChatLoading] = useState<boolean>(false);
   const [isChatOpen, setIsChatOpen] = useState(false);
   
-  // Effect to save reports to localStorage whenever they change
+  // Effect to load and save reports to localStorage
   useEffect(() => {
     try {
       localStorage.setItem('daNangXanhReports', JSON.stringify(reports));
@@ -95,6 +105,28 @@ const App: React.FC = () => {
       console.error("Lỗi khi lưu báo cáo vào localStorage:", error);
     }
   }, [reports]);
+
+  // Effect to load points from localStorage on initial render
+  useEffect(() => {
+    try {
+      const savedPoints = localStorage.getItem('daNangXanhUserPoints');
+      if (savedPoints) {
+        setUserPoints(parseInt(savedPoints, 10) || 0);
+      }
+    } catch (error) {
+      console.error("Lỗi khi tải điểm từ localStorage:", error);
+    }
+  }, []);
+
+  // Effect to save points to localStorage whenever they change
+  useEffect(() => {
+    try {
+      localStorage.setItem('daNangXanhUserPoints', userPoints.toString());
+    } catch (error) {
+      console.error("Lỗi khi lưu điểm vào localStorage:", error);
+    }
+  }, [userPoints]);
+
 
   const handleStartNewReport = (currentView: 'home' | 'map') => {
     setPreviousView(currentView);
@@ -129,6 +161,12 @@ const App: React.FC = () => {
         };
         
         setReports(prevReports => [newReport, ...prevReports]);
+        
+        // Award points for new report
+        const pointsAwarded = 10;
+        setUserPoints(prevPoints => prevPoints + pointsAwarded);
+        setLastAwardedPoints(pointsAwarded);
+
         setView('thankYou');
         setIsLoading(false);
       };
@@ -184,6 +222,11 @@ const App: React.FC = () => {
     }
   };
 
+  const handleNavigateFromThankYou = (destination: 'home' | 'map') => {
+    setView(destination);
+    setLastAwardedPoints(0); // Reset points so message doesn't show again
+  };
+
   const renderContent = () => {
     switch(view) {
       case 'home':
@@ -207,9 +250,10 @@ const App: React.FC = () => {
                   error={error}
                 />;
       case 'thankYou':
-        return <ThankYouView 
-                  onNavigateHome={() => setView('home')}
-                  onNavigateToMap={() => setView('map')}
+        return <ThankYouView
+                  awardedPoints={lastAwardedPoints}
+                  onNavigateHome={() => handleNavigateFromThankYou('home')}
+                  onNavigateToMap={() => handleNavigateFromThankYou('map')}
                 />;
       default:
          return <HomeView 
@@ -221,20 +265,20 @@ const App: React.FC = () => {
   }
 
   return (
-    <div className="min-h-screen bg-slate-50 text-gray-800 flex flex-col">
-      <header className="bg-white/80 backdrop-blur-sm shadow-sm z-20 sticky top-0">
+    <div className="min-h-screen bg-teal-50 text-slate-800 flex flex-col">
+      <header className="bg-white/90 backdrop-blur-sm shadow-md z-20 sticky top-0 border-b border-slate-200">
         <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-3 flex items-center justify-between">
           <div className="flex items-center space-x-3 cursor-pointer" onClick={() => setView('home')}>
-             <svg className="w-10 h-10 text-teal-500" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor">
-                <path d="M11.25 1.5c-5.385 0-9.75 4.365-9.75 9.75s4.365 9.75 9.75 9.75 9.75-4.365 9.75-9.75S16.635 1.5 11.25 1.5zM11.25 21a8.25 8.25 0 100-16.5 8.25 8.25 0 000 16.5z"/>
-                <path d="M12.913 6.328a.75.75 0 00-1.06 0l-4.5 4.5a.75.75 0 000 1.06l4.5 4.5a.75.75 0 001.06-1.06L9 12l3.913-3.912a.75.75 0 000-1.06z"/>
-                <path d="M12.088 18.328a.75.75 0 001.06 0l4.5-4.5a.75.75 0 000-1.06l-4.5-4.5a.75.75 0 00-1.06 1.06L15 12l-3.912 3.912a.75.75 0 000 1.06z" />
-             </svg>
-            <h1 className="text-2xl font-bold text-gray-800">
+             <LogoIcon className="w-10 h-10" />
+            <h1 className="text-2xl font-bold text-slate-800">
               Đà Nẵng <span className="text-teal-600">Xanh</span>
             </h1>
           </div>
-           <p className="text-sm text-gray-500 hidden md:block">Chung tay vì một môi trường đô thị sạch đẹp</p>
+           <div className="flex items-center space-x-2 bg-amber-100 text-amber-800 font-bold px-3 py-1.5 rounded-full text-sm">
+                <TrophyIcon className="w-6 h-6 text-amber-500" />
+                <span className="hidden sm:inline">Điểm:</span>
+                <span>{userPoints}</span>
+            </div>
         </div>
       </header>
       

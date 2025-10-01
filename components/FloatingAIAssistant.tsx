@@ -37,6 +37,9 @@ const FloatingAIAssistant: React.FC<FloatingAIAssistantProps> = ({ isOpen, onTog
         }
     };
 
+    const lastMessage = messages[messages.length - 1];
+    const showSuggestions = !isLoading && lastMessage?.role === 'model' && lastMessage.suggestions;
+
     return (
         <div className="fixed bottom-6 right-6 z-40">
             {/* Chat Window */}
@@ -80,7 +83,22 @@ const FloatingAIAssistant: React.FC<FloatingAIAssistantProps> = ({ isOpen, onTog
                             </div>
                         </div>
 
-                        <footer className="p-3 border-t border-black/10 flex-shrink-0">
+                        <footer className={`p-3 border-t border-black/10 flex-shrink-0 ${showSuggestions ? 'pb-1' : ''}`}>
+                            {showSuggestions && (
+                                <div className="pb-3">
+                                  <div className="flex flex-wrap gap-2 justify-start">
+                                    {lastMessage.suggestions?.map((suggestion, index) => (
+                                      <button
+                                        key={index}
+                                        onClick={() => onSubmit(suggestion)}
+                                        className="px-3 py-1.5 bg-white/80 border border-teal-500/50 text-teal-700 rounded-full text-sm hover:bg-teal-50 transition-colors focus:outline-none focus:ring-2 focus:ring-teal-400"
+                                      >
+                                        {suggestion}
+                                      </button>
+                                    ))}
+                                  </div>
+                                </div>
+                              )}
                             <form onSubmit={handleSubmit} className="flex items-center space-x-2">
                                 <input
                                     ref={inputRef}
