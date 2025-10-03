@@ -35,7 +35,7 @@ const ReportDetailModal: React.FC<ReportDetailModalProps> = ({ report, onClose, 
       aria-labelledby="report-details-title"
     >
       <div
-        className="bg-gray-50 rounded-2xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto flex flex-col"
+        className="bg-gray-50 rounded-2xl shadow-2xl w-full max-w-4xl max-h-[90vh] overflow-y-auto flex flex-col"
         onClick={(e) => e.stopPropagation()}
       >
         <header className="p-4 flex items-center justify-between border-b border-gray-200 sticky top-0 bg-gray-50/80 backdrop-blur-sm z-10">
@@ -47,45 +47,63 @@ const ReportDetailModal: React.FC<ReportDetailModalProps> = ({ report, onClose, 
           </h2>
           <button
             onClick={onClose}
-            className="text-gray-400 hover:text-gray-700 transition-colors"
+            className="p-3 text-gray-400 rounded-full hover:bg-gray-200 hover:text-gray-700 transition-colors"
             aria-label="Đóng"
           >
             <XMarkIcon className="w-7 h-7" />
           </button>
         </header>
 
-        <div className="p-6 space-y-6">
-            <img src={report.imageUrl} alt="Hình ảnh báo cáo" className="w-full h-auto max-h-80 object-contain rounded-lg bg-gray-200" />
-            
-            <div className="grid md:grid-cols-2 gap-6">
-                 {/* Left Column: User & Location Info */}
-                 <div className="space-y-4">
-                     <div>
-                        <h3 className="text-lg font-bold text-gray-800 mb-2">Thông Tin Gửi Lên</h3>
-                        <div className="bg-white p-3 rounded-lg border border-gray-200 space-y-3">
-                            {report.userDescription && (
-                                <div>
-                                    <p className="text-sm font-medium text-gray-500">Mô tả từ người dùng</p>
-                                    <p className="text-gray-700">{report.userDescription}</p>
-                                </div>
-                            )}
-                             <div>
-                                <p className="text-sm font-medium text-gray-500 flex items-center"><LocationIcon className="w-4 h-4 mr-1.5"/> Tọa độ GPS</p>
-                                <p className="text-gray-700 font-mono text-sm">{`${report.latitude.toFixed(5)}, ${report.longitude.toFixed(5)}`}</p>
-                            </div>
-                            <div>
-                                <p className="text-sm font-medium text-gray-500">Thời gian báo cáo</p>
-                                <p className="text-gray-700 text-sm">{report.timestamp.toLocaleString('vi-VN')}</p>
-                            </div>
-                        </div>
-                     </div>
-                 </div>
-
-                {/* Right Column: AI Analysis */}
-                <div>
-                     <ReportCard analysis={report.aiAnalysis} />
-                </div>
+        <div className="p-6">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 lg:gap-8">
+            {/* Image Column */}
+            <div className="w-full max-h-[70vh]">
+              <img
+                src={report.imageUrl}
+                alt="Hình ảnh báo cáo"
+                className="w-full h-full object-contain rounded-lg bg-gray-200"
+              />
             </div>
+
+            {/* Details Column */}
+            <div className="flex flex-col space-y-6">
+              {/* User Info */}
+              <div>
+                <h3 className="text-lg font-bold text-gray-800 mb-2">
+                  Thông Tin Gửi Lên
+                </h3>
+                <div className="bg-white p-3 rounded-lg border border-gray-200 space-y-3">
+                  {report.userDescription && (
+                    <div>
+                      <p className="text-sm font-medium text-gray-500">
+                        Mô tả từ người dùng
+                      </p>
+                      <p className="text-gray-700">{report.userDescription}</p>
+                    </div>
+                  )}
+                  <div>
+                    <p className="text-sm font-medium text-gray-500 flex items-center">
+                      <LocationIcon className="w-4 h-4 mr-1.5" /> Tọa độ GPS
+                    </p>
+                    <p className="text-gray-700 font-mono text-sm">{`${report.latitude.toFixed(5)}, ${report.longitude.toFixed(5)}`}</p>
+                  </div>
+                  <div>
+                    <p className="text-sm font-medium text-gray-500">
+                      Thời gian báo cáo
+                    </p>
+                    <p className="text-gray-700 text-sm">
+                      {report.timestamp.toLocaleString('vi-VN')}
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              {/* AI Analysis */}
+              <div>
+                <ReportCard analysis={report.aiAnalysis} />
+              </div>
+            </div>
+          </div>
         </div>
 
         <footer className="p-4 mt-auto border-t border-gray-200 sticky bottom-0 bg-gray-50/80 backdrop-blur-sm">

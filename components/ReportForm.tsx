@@ -109,7 +109,7 @@ const ReportForm: React.FC<ReportFormProps> = ({ onSubmit, onCancel, isLoading, 
                 <button 
                     type="button" 
                     onClick={fetchLocation} 
-                    className="text-teal-600 hover:text-teal-800 p-1 rounded-full hover:bg-teal-100 disabled:opacity-50"
+                    className="text-teal-600 hover:text-teal-800 p-3 rounded-full hover:bg-teal-100 disabled:opacity-50"
                     disabled={isGettingLocation}
                     aria-label="Tải lại vị trí"
                 >

@@ -56,7 +56,7 @@ const FloatingAIAssistant: React.FC<FloatingAIAssistantProps> = ({ isOpen, onTog
                                     <h3 className="text-lg font-bold text-gray-800">Trợ lý AI Xanh</h3>
                                 </div>
                             </div>
-                            <button onClick={onToggle} className="text-gray-400 hover:text-gray-700 transition-colors p-1 rounded-full hover:bg-black/10">
+                            <button onClick={onToggle} className="text-gray-400 hover:text-gray-700 transition-colors p-2 rounded-full hover:bg-black/10">
                                 <XMarkIcon className="w-6 h-6" />
                             </button>
                         </header>
@@ -91,7 +91,7 @@ const FloatingAIAssistant: React.FC<FloatingAIAssistantProps> = ({ isOpen, onTog
                                       <button
                                         key={index}
                                         onClick={() => onSubmit(suggestion)}
-                                        className="px-3 py-1.5 bg-white/80 border border-teal-500/50 text-teal-700 rounded-full text-sm hover:bg-teal-50 transition-colors focus:outline-none focus:ring-2 focus:ring-teal-400"
+                                        className="px-3 py-2 bg-white/80 border border-teal-500/50 text-teal-700 rounded-full text-sm hover:bg-teal-50 transition-colors focus:outline-none focus:ring-2 focus:ring-teal-400"
                                       >
                                         {suggestion}
                                       </button>

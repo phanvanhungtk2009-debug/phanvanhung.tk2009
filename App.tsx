@@ -1,14 +1,17 @@
 import React, { useState, useCallback, useEffect } from 'react';
 import { analyzeEnvironmentalImage, askAIAboutEnvironment } from './services/geminiService';
-import { EnvironmentalReport, AIAnalysis, ReportStatus, ChatMessage } from './types';
+import { EnvironmentalReport, AIAnalysis, ReportStatus, ChatMessage, ToastMessage, EducationalTopic } from './types';
 import MainMapView from './components/MainMapView';
 import ReportForm from './components/ReportForm';
 import ReportDetailModal from './components/ReportDetailModal';
 import HomeView from './components/HomeView';
 import ThankYouView from './components/ThankYouView';
 import FloatingAIAssistant from './components/FloatingAIAssistant';
+import ToastContainer from './components/ToastContainer';
 import { LogoIcon } from './components/icons/LogoIcon';
 import { TrophyIcon } from './components/icons/TrophyIcon';
+import EducationDetailModal from './components/EducationDetailModal';
+import EnvironmentalMapView from './components/EnvironmentalMapView';
 
 // Mock data to simulate existing reports in a database
 const initialReports: EnvironmentalReport[] = [
@@ -56,6 +59,36 @@ const initialReports: EnvironmentalReport[] = [
   },
 ];
 
+// Hàm tạo báo cáo giả để mô phỏng dữ liệu mới
+const createMockReport = (): EnvironmentalReport => {
+  const types: AIAnalysis['issueType'][] = ['Rác thải sai quy định', 'Ngập úng', 'Cây xanh cần chăm sóc'];
+  const statuses: ReportStatus[] = ['Mới báo cáo', 'Đang xử lý', 'Đã xử lý'];
+  const priorities: AIAnalysis['priority'][] = ['Cao', 'Trung bình', 'Thấp'];
+  
+  const randomType = types[Math.floor(Math.random() * types.length)];
+  const randomStatus = statuses[Math.floor(Math.random() * statuses.length)];
+  const randomPriority = priorities[Math.floor(Math.random() * priorities.length)];
+
+  // Trung tâm Đà Nẵng: 16.0544, 108.2022. Tạo ngẫu nhiên xung quanh.
+  const lat = 16.0544 + (Math.random() - 0.5) * 0.1; // ~ +/- 5.5 km
+  const lon = 108.2022 + (Math.random() - 0.5) * 0.1;
+
+  return {
+    id: new Date().toISOString() + Math.random(),
+    imageUrl: 'https://images.unsplash.com/photo-1567693122312-de549acb2a58?q=80&w=2070&auto=format&fit=crop', // Ảnh rác chung
+    latitude: lat,
+    longitude: lon,
+    userDescription: 'Báo cáo mới được tạo tự động.',
+    aiAnalysis: {
+      issueType: randomType,
+      description: `Một vấn đề ${randomType.toLowerCase()} đã được phát hiện tại vị trí này.`,
+      priority: randomPriority,
+    },
+    status: 'Mới báo cáo', // Báo cáo mới luôn có trạng thái này
+    timestamp: new Date(),
+  };
+};
+
 
 const App: React.FC = () => {
   const [reports, setReports] = useState<EnvironmentalReport[]>(() => {
@@ -74,13 +107,15 @@ const App: React.FC = () => {
     return initialReports;
   });
   
-  const [view, setView] = useState<'home' | 'map' | 'form' | 'thankYou'>('home');
+  const [view, setView] = useState<'home' | 'map' | 'form' | 'thankYou' | 'environmentalMap'>('home');
   const [previousView, setPreviousView] = useState<'home' | 'map'>('home');
   const [selectedReport, setSelectedReport] = useState<EnvironmentalReport | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
   const [userPoints, setUserPoints] = useState<number>(0);
   const [lastAwardedPoints, setLastAwardedPoints] = useState<number>(0);
+  const [toasts, setToasts] = useState<ToastMessage[]>([]);
+  const [selectedEducationTopic, setSelectedEducationTopic] = useState<EducationalTopic | null>(null);
   
   // State for the Floating AI Assistant
   const [chatMessages, setChatMessages] = useState<ChatMessage[]>([
@@ -127,6 +162,26 @@ const App: React.FC = () => {
     }
   }, [userPoints]);
 
+  const addToast = useCallback((message: string, type: 'success' | 'error' = 'success') => {
+    const id = Date.now();
+    setToasts(prevToasts => [...prevToasts, { id, message, type }]);
+  }, []);
+
+  // Effect để tự động làm mới dữ liệu báo cáo
+  useEffect(() => {
+    const intervalId = setInterval(() => {
+      console.log("Tự động làm mới dữ liệu báo cáo...");
+      const newReport = createMockReport();
+      setReports(prevReports => [newReport, ...prevReports]);
+      addToast('Đã nhận được báo cáo mới!');
+    }, 30000); // 30 giây
+
+    return () => clearInterval(intervalId); // Dọn dẹp khi component unmount
+  }, [addToast]);
+
+  const removeToast = useCallback((id: number) => {
+    setToasts(prevToasts => prevToasts.filter(toast => toast.id !== id));
+  }, []);
 
   const handleStartNewReport = (currentView: 'home' | 'map') => {
     setPreviousView(currentView);
@@ -196,7 +251,9 @@ const App: React.FC = () => {
       )
     );
 
-    setSelectedReport(prev => prev ? {...prev, status: statusCycle[prev.status]} : null);
+    const newStatus = statusCycle[selectedReport!.status];
+    setSelectedReport(prev => prev ? {...prev, status: newStatus} : null);
+    addToast('Trạng thái báo cáo đã được cập nhật thành công!');
   };
 
   const handleSelectReport = (report: EnvironmentalReport | null) => {
@@ -227,6 +284,20 @@ const App: React.FC = () => {
     setLastAwardedPoints(0); // Reset points so message doesn't show again
   };
 
+  const handleSelectReportAndNavigateToMap = (report: EnvironmentalReport) => {
+    setView('map');
+    // Setting the selected report will cause the modal to appear on the map view
+    setSelectedReport(report);
+  };
+
+  const handleSelectEducationTopic = (topic: EducationalTopic) => {
+    setSelectedEducationTopic(topic);
+  };
+
+  const handleCloseEducationModal = () => {
+    setSelectedEducationTopic(null);
+  };
+
   const renderContent = () => {
     switch(view) {
       case 'home':
@@ -234,6 +305,9 @@ const App: React.FC = () => {
                   reports={reports} 
                   onNavigateToMap={() => setView('map')} 
                   onStartNewReport={() => handleStartNewReport('home')}
+                  onSelectReportAndNavigateToMap={handleSelectReportAndNavigateToMap}
+                  onSelectEducationTopic={handleSelectEducationTopic}
+                  onNavigateToEnvironmentalMap={() => setView('environmentalMap')}
                 />;
       case 'map':
         return <MainMapView 
@@ -255,17 +329,23 @@ const App: React.FC = () => {
                   onNavigateHome={() => handleNavigateFromThankYou('home')}
                   onNavigateToMap={() => handleNavigateFromThankYou('map')}
                 />;
+      case 'environmentalMap':
+        return <EnvironmentalMapView onNavigateHome={() => setView('home')} />;
       default:
          return <HomeView 
                   reports={reports} 
                   onNavigateToMap={() => setView('map')} 
                   onStartNewReport={() => handleStartNewReport('home')}
+                  onSelectReportAndNavigateToMap={handleSelectReportAndNavigateToMap}
+                  onSelectEducationTopic={handleSelectEducationTopic}
+                   onNavigateToEnvironmentalMap={() => setView('environmentalMap')}
                 />;
     }
   }
 
   return (
     <div className="min-h-screen bg-teal-50 text-slate-800 flex flex-col">
+       <ToastContainer toasts={toasts} onDismiss={removeToast} />
       <header className="bg-white/90 backdrop-blur-sm shadow-md z-20 sticky top-0 border-b border-slate-200">
         <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-3 flex items-center justify-between">
           <div className="flex items-center space-x-3 cursor-pointer" onClick={() => setView('home')}>
@@ -290,6 +370,13 @@ const App: React.FC = () => {
             report={selectedReport}
             onClose={() => handleSelectReport(null)}
             onUpdateStatus={handleUpdateReportStatus}
+          />
+        )}
+
+        {selectedEducationTopic && (
+          <EducationDetailModal
+            topic={selectedEducationTopic}
+            onClose={handleCloseEducationModal}
           />
         )}
       </main>
