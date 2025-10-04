@@ -66,6 +66,33 @@ export const analyzeEnvironmentalImage = async (base64Image: string, mimeType: s
   }
 };
 
+export const isImageTrash = async (base64Image: string, mimeType: string): Promise<boolean> => {
+  try {
+    const imagePart = {
+      inlineData: {
+        data: base64Image,
+        mimeType: mimeType,
+      },
+    };
+
+    const textPart = {
+      text: "Phân tích hình ảnh này. Hình ảnh có chứa rác thải, rác bừa bãi, hoặc bãi rác không? Chỉ trả lời 'Có' hoặc 'Không'."
+    };
+
+    const response = await ai.models.generateContent({
+      model: 'gemini-2.5-flash',
+      contents: { parts: [imagePart, textPart] },
+    });
+
+    const resultText = response.text.trim().toLowerCase();
+    return resultText.includes('có');
+
+  } catch (error) {
+    console.error("Error calling Gemini API for trash validation:", error);
+    throw new Error("Không thể phân tích hình ảnh để kiểm tra rác thải.");
+  }
+};
+
 export const askAIAboutEnvironment = async (question: string): Promise<string> => {
   try {
      const response = await ai.models.generateContent({

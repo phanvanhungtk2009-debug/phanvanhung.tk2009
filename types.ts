@@ -18,6 +18,7 @@ export interface EnvironmentalReport {
   aiAnalysis: AIAnalysis;
   status: ReportStatus;
   timestamp: Date;
+  isTrashLikely: boolean;
 }
 
 export interface ChatMessage {
@@ -54,3 +55,5 @@ export interface EnvironmentalPOI {
   latitude: number;
   longitude: number;
 }
+
+export type ImageValidationStatus = 'idle' | 'analyzing' | 'valid' | 'invalid';

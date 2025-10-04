@@ -1,5 +1,5 @@
 import React, { useState, useCallback, useEffect } from 'react';
-import { analyzeEnvironmentalImage, askAIAboutEnvironment } from './services/geminiService';
+import { analyzeEnvironmentalImage, askAIAboutEnvironment, isImageTrash } from './services/geminiService';
 import { EnvironmentalReport, AIAnalysis, ReportStatus, ChatMessage, ToastMessage, EducationalTopic } from './types';
 import MainMapView from './components/MainMapView';
 import ReportForm from './components/ReportForm';
@@ -28,6 +28,7 @@ const initialReports: EnvironmentalReport[] = [
     },
     status: 'Mới báo cáo',
     timestamp: new Date(Date.now() - 86400000 * 2), // 2 days ago
+    isTrashLikely: true,
   },
   {
     id: '2',
@@ -42,6 +43,7 @@ const initialReports: EnvironmentalReport[] = [
     },
     status: 'Đang xử lý',
     timestamp: new Date(Date.now() - 86400000), // 1 day ago
+    isTrashLikely: false,
   },
    {
     id: '3',
@@ -56,6 +58,7 @@ const initialReports: EnvironmentalReport[] = [
     },
     status: 'Đã xử lý',
     timestamp: new Date(Date.now() - 86400000 * 5), // 5 days ago
+    isTrashLikely: false,
   },
 ];
 
@@ -86,6 +89,7 @@ const createMockReport = (): EnvironmentalReport => {
     },
     status: 'Mới báo cáo', // Báo cáo mới luôn có trạng thái này
     timestamp: new Date(),
+    isTrashLikely: randomType === 'Rác thải sai quy định',
   };
 };
 
@@ -202,7 +206,12 @@ const App: React.FC = () => {
       reader.onload = async () => {
         const base64String = (reader.result as string).split(',')[1];
         const mimeType = imageFile.type;
-        const aiAnalysis: AIAnalysis = await analyzeEnvironmentalImage(base64String, mimeType);
+
+        // Perform both analyses concurrently for better performance
+        const [aiAnalysis, isTrash] = await Promise.all([
+          analyzeEnvironmentalImage(base64String, mimeType),
+          isImageTrash(base64String, mimeType)
+        ]);
         
         const newReport: EnvironmentalReport = {
           id: new Date().toISOString(),
@@ -213,6 +222,7 @@ const App: React.FC = () => {
           aiAnalysis,
           status: 'Mới báo cáo',
           timestamp: new Date(),
+          isTrashLikely: isTrash,
         };
         
         setReports(prevReports => [newReport, ...prevReports]);

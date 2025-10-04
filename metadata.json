@@ -2,6 +2,7 @@
   "name": "Đà Nẵng Xanh - AI Giám Sát Môi Trường",
   "description": "Ứng dụng web cho phép người dân Đà Nẵng báo cáo các vấn đề môi trường bằng cách tải lên hình ảnh. AI sẽ tự động phân tích, xác định loại vấn đề, vị trí và mức độ ưu tiên để giúp cơ quan chức năng xử lý hiệu quả.",
   "requestFramePermissions": [
-    "geolocation"
+    "geolocation",
+    "camera"
   ]
 }
