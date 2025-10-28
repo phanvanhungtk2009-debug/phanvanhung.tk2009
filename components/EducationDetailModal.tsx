@@ -40,13 +40,13 @@ const EducationDetailModal: React.FC<EducationDetailModalProps> = ({ topic, onCl
         </header>
 
         <div className="p-6 space-y-6">
-          {/* Importance Section */}
+          {/* Phần Tầm quan trọng */}
           <div>
-            <h3 className="text-lg font-semibold text-slate-700 mb-2">Tại sao lại quan trọng?</h3>
+            <h3 className="text-lg font-semibold text-slate-700 mb-2">Tại sao điều này quan trọng?</h3>
             <p className="text-slate-600 leading-relaxed bg-white p-4 rounded-lg border border-slate-200">{topic.details.importance}</p>
           </div>
 
-          {/* Solutions Section */}
+          {/* Phần Giải pháp */}
           <div>
             <h3 className="text-lg font-semibold text-slate-700 mb-2">Giải pháp và cách thực hiện</h3>
             <div className="space-y-3">
@@ -59,7 +59,7 @@ const EducationDetailModal: React.FC<EducationDetailModalProps> = ({ topic, onCl
             </div>
           </div>
 
-          {/* Tip Section */}
+          {/* Phần Mẹo */}
           <div className="bg-amber-50 border-l-4 border-amber-400 p-4 rounded-r-lg">
             <div className="flex items-start">
               <div className="flex-shrink-0">

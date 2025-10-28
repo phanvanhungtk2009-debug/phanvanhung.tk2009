@@ -36,14 +36,14 @@ const MapSearch: React.FC<MapSearchProps> = ({ onSearch }) => {
         const { lat, lon } = data[0];
         const latLng = L.latLng(parseFloat(lat), parseFloat(lon));
         onSearch(latLng);
-        setQuery(''); // Clear input on success
+        setQuery(''); // Xóa input khi thành công
       } else {
         setError('Không tìm thấy địa điểm.');
-        setTimeout(() => setError(null), 3000); // Clear error after 3s
+        setTimeout(() => setError(null), 3000); // Xóa lỗi sau 3 giây
       }
     } catch (err) {
       console.error("Lỗi khi tìm kiếm địa điểm:", err);
-      const message = err instanceof Error ? err.message : 'Đã có lỗi xảy ra.';
+      const message = err instanceof Error ? err.message : 'Đã xảy ra lỗi.';
       setError(message);
       setTimeout(() => setError(null), 3000);
     } finally {
@@ -60,7 +60,7 @@ const MapSearch: React.FC<MapSearchProps> = ({ onSearch }) => {
         type="text"
         value={query}
         onChange={(e) => setQuery(e.target.value)}
-        placeholder="Tìm địa điểm ở Đà Nẵng..."
+        placeholder="Tìm kiếm địa điểm ở Đà Nẵng..."
         className={`bg-white/80 backdrop-blur-sm shadow-lg rounded-l-full py-2 px-4 text-gray-700 focus:outline-none focus:ring-2 focus:ring-teal-500 transition-all duration-300 w-40 sm:w-48 md:w-64 ${error ? 'ring-2 ring-red-500 placeholder-red-400' : ''}`}
         aria-label="Tìm kiếm địa điểm"
       />

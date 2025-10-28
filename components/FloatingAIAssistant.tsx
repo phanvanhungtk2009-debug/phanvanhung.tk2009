@@ -24,7 +24,7 @@ const FloatingAIAssistant: React.FC<FloatingAIAssistantProps> = ({ isOpen, onTog
     useEffect(() => {
         if (isOpen) {
             scrollToBottom();
-            setTimeout(() => inputRef.current?.focus(), 300); // Focus input after opening
+            setTimeout(() => inputRef.current?.focus(), 300); // Focus input sau khi mở
         }
     }, [messages, isLoading, isOpen]);
     
@@ -42,10 +42,10 @@ const FloatingAIAssistant: React.FC<FloatingAIAssistantProps> = ({ isOpen, onTog
 
     return (
         <div className="fixed bottom-6 right-6 z-40">
-            {/* Chat Window */}
+            {/* Cửa sổ Chat */}
             <div className={`transition-all duration-300 ease-in-out ${isOpen ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4 pointer-events-none'}`}>
                 <div className="w-[calc(100vw-3rem)] max-w-md h-[70vh] max-h-[600px] bg-white/50 backdrop-blur-xl rounded-2xl shadow-2xl flex flex-col overflow-hidden border border-white/30">
-                     {/* Background Image */}
+                     {/* Hình nền */}
                     <div className="absolute inset-0 z-0 bg-cover bg-center opacity-20" style={{ backgroundImage: "url('https://images.unsplash.com/photo-1599666433232-2b225eb21b87?q=80&w=1974&auto=format&fit=crop')" }}></div>
                     
                     <div className="relative z-10 flex flex-col h-full">
@@ -118,7 +118,7 @@ const FloatingAIAssistant: React.FC<FloatingAIAssistantProps> = ({ isOpen, onTog
                 </div>
             </div>
 
-            {/* Toggle Button */}
+            {/* Nút bật/tắt */}
              <button
                 onClick={onToggle}
                 className="bg-teal-600 text-white rounded-full p-4 shadow-lg hover:bg-teal-700 transition-all transform hover:scale-110 focus:outline-none focus:ring-2 focus:ring-teal-500 focus:ring-offset-2"

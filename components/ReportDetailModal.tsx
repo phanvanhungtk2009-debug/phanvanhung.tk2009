@@ -12,8 +12,8 @@ interface ReportDetailModalProps {
 
 const getStatusDetails = (status: ReportStatus) => {
   switch (status) {
-    case 'Mới báo cáo':
-      return { label: 'Mới báo cáo', bgColor: 'bg-red-100', textColor: 'text-red-800' };
+    case 'Báo cáo mới':
+      return { label: 'Báo cáo mới', bgColor: 'bg-red-100', textColor: 'text-red-800' };
     case 'Đang xử lý':
       return { label: 'Đang xử lý', bgColor: 'bg-yellow-100', textColor: 'text-yellow-800' };
     case 'Đã xử lý':
@@ -43,7 +43,7 @@ const ReportDetailModal: React.FC<ReportDetailModalProps> = ({ report, onClose, 
               {statusDetails.label}
             </div>
           <h2 id="report-details-title" className="text-xl font-bold text-gray-800">
-            Chi Tiết Báo Cáo
+            Chi tiết báo cáo
           </h2>
           <button
             onClick={onClose}
@@ -56,27 +56,35 @@ const ReportDetailModal: React.FC<ReportDetailModalProps> = ({ report, onClose, 
 
         <div className="p-6">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 lg:gap-8">
-            {/* Image Column */}
-            <div className="w-full max-h-[70vh]">
-              <img
-                src={report.imageUrl}
-                alt="Hình ảnh báo cáo"
-                className="w-full h-full object-contain rounded-lg bg-gray-200"
-              />
+            {/* Cột media */}
+            <div className="w-full max-h-[70vh] flex items-center justify-center bg-gray-200 rounded-lg overflow-hidden">
+                {report.mediaType === 'image' ? (
+                    <img
+                        src={report.mediaUrl}
+                        alt="Hình ảnh báo cáo"
+                        className="w-full h-full object-contain"
+                    />
+                ) : (
+                    <video
+                        src={report.mediaUrl}
+                        controls
+                        className="w-full h-full object-contain"
+                    />
+                )}
             </div>
 
-            {/* Details Column */}
+            {/* Cột chi tiết */}
             <div className="flex flex-col space-y-6">
-              {/* User Info */}
+              {/* Thông tin người dùng */}
               <div>
                 <h3 className="text-lg font-bold text-gray-800 mb-2">
-                  Thông Tin Gửi Lên
+                  Thông tin đã gửi
                 </h3>
                 <div className="bg-white p-3 rounded-lg border border-gray-200 space-y-3">
                   {report.userDescription && (
                     <div>
                       <p className="text-sm font-medium text-gray-500">
-                        Mô tả từ người dùng
+                        Mô tả của người dùng
                       </p>
                       <p className="text-gray-700">{report.userDescription}</p>
                     </div>
@@ -98,7 +106,7 @@ const ReportDetailModal: React.FC<ReportDetailModalProps> = ({ report, onClose, 
                 </div>
               </div>
 
-              {/* AI Analysis */}
+              {/* Phân tích của AI */}
               <div>
                 <ReportCard analysis={report.aiAnalysis} />
               </div>
@@ -111,7 +119,7 @@ const ReportDetailModal: React.FC<ReportDetailModalProps> = ({ report, onClose, 
                 onClick={() => onUpdateStatus(report.id)}
                 className="w-full bg-teal-600 text-white font-bold py-3 px-6 rounded-lg shadow-md hover:bg-teal-700 transition-transform transform hover:scale-105 duration-300 focus:outline-none focus:ring-2 focus:ring-teal-500 focus:ring-offset-2"
             >
-                Cập Nhật Trạng Thái (Mô phỏng Admin)
+                Cập nhật trạng thái (Mô phỏng Admin)
             </button>
         </footer>
       </div>

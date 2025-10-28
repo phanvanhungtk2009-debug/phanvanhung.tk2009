@@ -1,24 +1,26 @@
 // FIX: Add import for React to resolve 'Cannot find namespace React' error.
 import React from 'react';
 
-export type ReportStatus = 'Mới báo cáo' | 'Đang xử lý' | 'Đã xử lý';
+export type ReportStatus = 'Báo cáo mới' | 'Đang xử lý' | 'Đã xử lý';
 
 export interface AIAnalysis {
-  issueType: 'Rác thải sai quy định' | 'Ngập úng' | 'Cây xanh cần chăm sóc' | 'Khác';
+  issueType: 'Xả rác không đúng nơi quy định' | 'Ngập lụt' | 'Sạt lở đất' | 'Cần chăm sóc cây xanh' | 'Khác' | 'Không có sự cố';
   description: string;
   priority: 'Cao' | 'Trung bình' | 'Thấp';
+  solution: string; // Giải pháp do AI đề xuất
+  isIssuePresent: boolean; // Cờ để xác thực hình ảnh/video có sự cố môi trường
 }
 
 export interface EnvironmentalReport {
   id: string;
-  imageUrl: string;
+  mediaUrl: string; // Renamed from imageUrl
+  mediaType: 'image' | 'video';
   latitude: number;
   longitude: number;
   userDescription?: string;
   aiAnalysis: AIAnalysis;
   status: ReportStatus;
   timestamp: Date;
-  isTrashLikely: boolean;
 }
 
 export interface ChatMessage {

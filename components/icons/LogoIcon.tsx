@@ -1,7 +1,7 @@
 import React from 'react';
 
 export const LogoIcon: React.FC<React.SVGProps<SVGSVGElement>> = (props) => (
-  <svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg" {...props} aria-label="Đà Nẵng Xanh Logo">
+  <svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg" {...props} aria-label="DA NANG GREEN Logo">
     <defs>
       <linearGradient id="logoLeafGradient" x1="50%" y1="0%" x2="50%" y2="100%">
         <stop offset="0%" stopColor="#34d399" /> 
@@ -19,7 +19,8 @@ export const LogoIcon: React.FC<React.SVGProps<SVGSVGElement>> = (props) => (
     <path
       d="M0 70 Q 25 58, 50 70 T 100 70 L 100 100 L 0 100 Z"
       fill="#ffffff"
-      style={{ mixBlendMode: 'destination-out' }}
+      // FIX: Cast 'destination-out' to 'any' to resolve TypeScript error for non-standard CSS property value.
+      style={{ mixBlendMode: 'destination-out' as any }}
     />
     
      {/* The blue wave line accent */}

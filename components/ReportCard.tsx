@@ -2,6 +2,7 @@ import React from 'react';
 import { AIAnalysis } from '../types';
 import { LocationIcon } from './icons/LocationIcon';
 import { SeverityIcon } from './icons/SeverityIcon';
+import { SparklesIcon } from './icons/SparklesIcon';
 
 interface ReportCardProps {
   analysis: AIAnalysis;
@@ -35,7 +36,7 @@ const getPriorityDetails = (priority: 'Cao' | 'Trung bình' | 'Thấp') => {
       };
     default:
       return {
-        label: 'Không xác định',
+        label: 'Không rõ',
         bgColor: 'bg-gray-100',
         textColor: 'text-gray-700',
         meterColor: 'bg-gray-400',
@@ -49,12 +50,12 @@ const ReportCard: React.FC<ReportCardProps> = ({ analysis }) => {
   const priorityDetails = getPriorityDetails(analysis.priority);
 
   return (
-    <div className="w-full bg-white rounded-xl overflow-hidden">
-      <div className="p-1">
-        <h3 className="text-lg font-bold text-gray-800 mb-4">Phân Tích từ AI</h3>
+    <div className="w-full bg-white rounded-xl overflow-hidden border border-slate-200">
+      <div className="p-4">
+        <h3 className="text-lg font-bold text-gray-800 mb-4">Phân tích tự động của AI</h3>
         
         <div className="space-y-4">
-            {/* Enhanced Priority Section */}
+            {/* Phần Mức độ ưu tiên nâng cao */}
             <div className={`p-3 rounded-lg ${priorityDetails.bgColor}`}>
               <div className="flex items-center justify-between">
                 <div className="flex items-center space-x-3">
@@ -64,7 +65,7 @@ const ReportCard: React.FC<ReportCardProps> = ({ analysis }) => {
                     <p className={`text-lg font-bold ${priorityDetails.textColor}`}>{priorityDetails.label}</p>
                   </div>
                 </div>
-                {/* Visual Meter */}
+                {/* Thước đo trực quan */}
                 <div className="flex items-center gap-1.5" aria-label={`Mức độ ưu tiên: ${priorityDetails.label}`}>
                   <div title="Thấp" className={`h-2 w-6 rounded-full transition-colors duration-300 ${priorityDetails.level >= 1 ? priorityDetails.meterColor : 'bg-gray-300/70'}`} />
                   <div title="Trung bình" className={`h-2 w-6 rounded-full transition-colors duration-300 ${priorityDetails.level >= 2 ? priorityDetails.meterColor : 'bg-gray-300/70'}`} />
@@ -74,7 +75,7 @@ const ReportCard: React.FC<ReportCardProps> = ({ analysis }) => {
             </div>
             
             <div>
-              <p className="text-sm font-medium text-gray-500 mb-1">Loại vấn đề</p>
+              <p className="text-sm font-medium text-gray-500 mb-1">Loại sự cố</p>
               <p className="text-gray-900 font-semibold bg-gray-100 p-2 rounded-md text-base">{analysis.issueType}</p>
             </div>
             
@@ -82,6 +83,20 @@ const ReportCard: React.FC<ReportCardProps> = ({ analysis }) => {
               <p className="text-sm font-medium text-gray-500 mb-1">Mô tả chi tiết</p>
               <p className="text-gray-700 bg-gray-100 p-2 rounded-md text-sm leading-relaxed">{analysis.description}</p>
             </div>
+
+             {analysis.solution && (
+              <div className="bg-indigo-50 border-l-4 border-indigo-400 p-4 rounded-r-lg">
+                <div className="flex items-start">
+                  <div className="flex-shrink-0">
+                    <SparklesIcon className="h-6 w-6 text-indigo-500" />
+                  </div>
+                  <div className="ml-3">
+                    <h4 className="text-md font-bold text-indigo-800">Giải pháp đề xuất</h4>
+                    <p className="text-sm text-indigo-700 mt-1">{analysis.solution}</p>
+                  </div>
+                </div>
+              </div>
+            )}
         </div>
       </div>
     </div>

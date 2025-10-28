@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { CheckCircleIcon } from './icons/CheckCircleIcon';
 import { XMarkIcon } from './icons/XMarkIcon';
+// FIX: Import XCircleIcon to use for error toasts.
+import { XCircleIcon } from './icons/XCircleIcon';
 
 interface ToastProps {
   message: string;
@@ -8,7 +10,7 @@ interface ToastProps {
   onDismiss: () => void;
 }
 
-const DURATION = 4000; // 4 seconds
+const DURATION = 4000; // 4 giây
 
 const Toast: React.FC<ToastProps> = ({ message, type, onDismiss }) => {
   const [isExiting, setIsExiting] = useState(false);
@@ -16,7 +18,7 @@ const Toast: React.FC<ToastProps> = ({ message, type, onDismiss }) => {
   useEffect(() => {
     const timer = setTimeout(() => {
       setIsExiting(true);
-      // Allow time for exit animation before calling onDismiss
+      // Cho phép thời gian cho animation thoát trước khi gọi onDismiss
       setTimeout(onDismiss, 300);
     }, DURATION);
 
@@ -34,8 +36,8 @@ const Toast: React.FC<ToastProps> = ({ message, type, onDismiss }) => {
       progressBar: 'bg-green-500',
     },
     error: {
-      // Placeholder for error styling
-      icon: <CheckCircleIcon className="w-6 h-6 text-red-500" />,
+      // FIX: Use XCircleIcon for error messages instead of CheckCircleIcon for correct visual feedback.
+      icon: <XCircleIcon className="w-6 h-6 text-red-500" />,
       progressBar: 'bg-red-500',
     },
   };
@@ -63,7 +65,9 @@ const Toast: React.FC<ToastProps> = ({ message, type, onDismiss }) => {
         className={`absolute bottom-0 left-0 h-1 ${typeClasses[type].progressBar}`}
         style={{ animation: `progress-bar ${DURATION}ms linear forwards` }}
       />
-      <style jsx>{`
+      {/* FIX: Removed the 'jsx' prop from the <style> tag to resolve the React error.
+          The keyframes are now defined in a standard style block. */}
+      <style>{`
         @keyframes toast-in {
           from {
             opacity: 0;

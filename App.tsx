@@ -1,5 +1,7 @@
 import React, { useState, useCallback, useEffect } from 'react';
-import { analyzeEnvironmentalImage, askAIAboutEnvironment, isImageTrash } from './services/geminiService';
+import * as L from 'leaflet';
+// FIX: Import `askAIAboutEnvironment` to resolve reference error in `handleChatSubmit`.
+import { analyzeEnvironmentalImage, askAIAboutEnvironment } from './services/geminiService';
 import { EnvironmentalReport, AIAnalysis, ReportStatus, ChatMessage, ToastMessage, EducationalTopic } from './types';
 import MainMapView from './components/MainMapView';
 import ReportForm from './components/ReportForm';
@@ -13,83 +15,107 @@ import { TrophyIcon } from './components/icons/TrophyIcon';
 import EducationDetailModal from './components/EducationDetailModal';
 import EnvironmentalMapView from './components/EnvironmentalMapView';
 
-// Mock data to simulate existing reports in a database
+// Dữ liệu giả lập để mô phỏng các báo cáo đã có trong cơ sở dữ liệu
 const initialReports: EnvironmentalReport[] = [
   {
     id: '1',
-    imageUrl: 'https://images.unsplash.com/photo-1598692294285-649a6f18638b?q=80&w=2070&auto=format&fit=crop',
+    mediaUrl: 'https://images.unsplash.com/photo-1598692294285-649a6f18638b?q=80&w=2070&auto=format&fit=crop',
+    mediaType: 'image',
     latitude: 16.0748,
     longitude: 108.2236,
-    userDescription: 'Rác thải sinh hoạt bị vứt bừa bãi gần cầu Rồng.',
+    userDescription: 'Rác thải sinh hoạt vứt bừa bãi gần Cầu Rồng.',
     aiAnalysis: {
-      issueType: 'Rác thải sai quy định',
-      description: 'Một lượng lớn rác thải sinh hoạt, bao gồm túi nilon và hộp nhựa, tích tụ tại khu vực công cộng.',
+      issueType: 'Xả rác không đúng nơi quy định',
+      description: 'Một lượng lớn rác thải sinh hoạt, bao gồm túi ni lông và hộp, đã tích tụ ở khu vực công cộng.',
       priority: 'Cao',
+      solution: 'Cần đội vệ sinh môi trường đến thu gom và lắp đặt thêm thùng rác tại khu vực này.',
+      isIssuePresent: true,
     },
-    status: 'Mới báo cáo',
-    timestamp: new Date(Date.now() - 86400000 * 2), // 2 days ago
-    isTrashLikely: true,
+    status: 'Báo cáo mới',
+    timestamp: new Date(Date.now() - 86400000 * 2), // 2 ngày trước
   },
   {
-    id: '2',
-    imageUrl: 'https://images.unsplash.com/photo-1618512496248-676dbe130c0b?q=80&w=2070&auto=format&fit=crop',
+    id: '4',
+    mediaUrl: 'https://storage.googleapis.com/static-ai-apps/media/Da_Nang_Flooding.mp4',
+    mediaType: 'video',
     latitude: 16.0601,
     longitude: 108.2225,
-    userDescription: 'Nước ngập sau cơn mưa lớn hôm qua, chưa rút.',
+    userDescription: "Đường ngập sâu sau trận mưa lớn, xe cộ không đi lại được.",
     aiAnalysis: {
-      issueType: 'Ngập úng',
-      description: 'Khu vực đường trũng bị ngập nước, cản trở giao thông và có nguy cơ ô nhiễm.',
-      priority: 'Trung bình',
+      issueType: 'Ngập lụt',
+      description: 'Khu vực đường Nguyễn Văn Linh bị ngập sâu, cản trở giao thông nghiêm trọng.',
+      priority: 'Cao',
+      solution: 'Cảnh báo người dân, điều tiết giao thông và huy động đội thoát nước khơi thông hệ thống cống.',
+      isIssuePresent: true,
     },
     status: 'Đang xử lý',
-    timestamp: new Date(Date.now() - 86400000), // 1 day ago
-    isTrashLikely: false,
+    timestamp: new Date(Date.now() - 86400000), // 1 ngày trước
   },
    {
     id: '3',
-    imageUrl: 'https://images.unsplash.com/photo-1523348835941-8d5a77ecaf2a?q=80&w=1974&auto=format&fit=crop',
+    mediaUrl: 'https://images.unsplash.com/photo-1523348835941-8d5a77ecaf2a?q=80&w=1974&auto=format&fit=crop',
+    mediaType: 'image',
     latitude: 16.0544,
     longitude: 108.2022,
-    userDescription: 'Cây xanh ở đây có vẻ đã được cắt tỉa gọn gàng.',
+    userDescription: 'Cây cối ở đây có vẻ đã được cắt tỉa gọn gàng.',
     aiAnalysis: {
-      issueType: 'Cây xanh cần chăm sóc',
-      description: 'Cành cây đã được dọn dẹp, không còn gây cản trở.',
+      issueType: 'Không có sự cố',
+      description: 'Cây xanh đã được dọn dẹp và không còn gây cản trở.',
       priority: 'Thấp',
+      solution: 'Không cần hành động thêm, cây xanh đã được chăm sóc.',
+      isIssuePresent: false,
     },
     status: 'Đã xử lý',
-    timestamp: new Date(Date.now() - 86400000 * 5), // 5 days ago
-    isTrashLikely: false,
+    timestamp: new Date(Date.now() - 86400000 * 5), // 5 ngày trước
+  },
+  {
+    id: '5',
+    mediaUrl: 'https://storage.googleapis.com/static-ai-apps/media/Da_Nang_Landslide.mp4',
+    mediaType: 'video',
+    latitude: 16.115, // Bán đảo Sơn Trà
+    longitude: 108.27,
+    userDescription: 'Sạt lở đất đá trên đường lên Sơn Trà, rất nguy hiểm.',
+    aiAnalysis: {
+      issueType: 'Sạt lở đất',
+      description: 'Một lượng lớn đất đá đã sạt lở xuống lòng đường, chặn một phần lối đi và có nguy cơ tiếp tục sạt lở.',
+      priority: 'Cao',
+      solution: 'Cần phong tỏa khu vực, đặt biển báo nguy hiểm và cử đội công trình đến khắc phục ngay lập tức.',
+      isIssuePresent: true,
+    },
+    status: 'Báo cáo mới',
+    timestamp: new Date(Date.now() - 3600000 * 3), // 3 giờ trước
   },
 ];
 
 // Hàm tạo báo cáo giả để mô phỏng dữ liệu mới
 const createMockReport = (): EnvironmentalReport => {
-  const types: AIAnalysis['issueType'][] = ['Rác thải sai quy định', 'Ngập úng', 'Cây xanh cần chăm sóc'];
-  const statuses: ReportStatus[] = ['Mới báo cáo', 'Đang xử lý', 'Đã xử lý'];
+  const types: AIAnalysis['issueType'][] = ['Xả rác không đúng nơi quy định', 'Ngập lụt', 'Sạt lở đất', 'Cần chăm sóc cây xanh'];
+  const statuses: ReportStatus[] = ['Báo cáo mới', 'Đang xử lý', 'Đã xử lý'];
   const priorities: AIAnalysis['priority'][] = ['Cao', 'Trung bình', 'Thấp'];
   
   const randomType = types[Math.floor(Math.random() * types.length)];
-  const randomStatus = statuses[Math.floor(Math.random() * statuses.length)];
   const randomPriority = priorities[Math.floor(Math.random() * priorities.length)];
 
-  // Trung tâm Đà Nẵng: 16.0544, 108.2022. Tạo ngẫu nhiên xung quanh.
+  // Trung tâm Đà Nẵng: 16.0544, 108.2022. Tạo các điểm ngẫu nhiên xung quanh.
   const lat = 16.0544 + (Math.random() - 0.5) * 0.1; // ~ +/- 5.5 km
   const lon = 108.2022 + (Math.random() - 0.5) * 0.1;
 
   return {
     id: new Date().toISOString() + Math.random(),
-    imageUrl: 'https://images.unsplash.com/photo-1567693122312-de549acb2a58?q=80&w=2070&auto=format&fit=crop', // Ảnh rác chung
+    mediaUrl: 'https://images.unsplash.com/photo-1567693122312-de549acb2a58?q=80&w=2070&auto=format&fit=crop', // Ảnh rác chung
+    mediaType: 'image',
     latitude: lat,
     longitude: lon,
     userDescription: 'Báo cáo mới được tạo tự động.',
     aiAnalysis: {
       issueType: randomType,
-      description: `Một vấn đề ${randomType.toLowerCase()} đã được phát hiện tại vị trí này.`,
+      description: `Một sự cố về '${randomType}' đã được phát hiện tại địa điểm này.`,
       priority: randomPriority,
+      solution: 'Giải pháp tự động tạo cho báo cáo mô phỏng.',
+      isIssuePresent: true,
     },
-    status: 'Mới báo cáo', // Báo cáo mới luôn có trạng thái này
+    status: 'Báo cáo mới', // Báo cáo mới luôn có trạng thái này
     timestamp: new Date(),
-    isTrashLikely: randomType === 'Rác thải sai quy định',
   };
 };
 
@@ -97,7 +123,7 @@ const createMockReport = (): EnvironmentalReport => {
 const App: React.FC = () => {
   const [reports, setReports] = useState<EnvironmentalReport[]>(() => {
     try {
-      const savedReportsJSON = localStorage.getItem('daNangXanhReports');
+      const savedReportsJSON = localStorage.getItem('daNangGreenReports');
       if (savedReportsJSON) {
         const parsedReports = JSON.parse(savedReportsJSON);
         return parsedReports.map((report: EnvironmentalReport) => ({
@@ -120,35 +146,39 @@ const App: React.FC = () => {
   const [lastAwardedPoints, setLastAwardedPoints] = useState<number>(0);
   const [toasts, setToasts] = useState<ToastMessage[]>([]);
   const [selectedEducationTopic, setSelectedEducationTopic] = useState<EducationalTopic | null>(null);
+  const [mapViewState, setMapViewState] = useState({
+    center: [16.0544, 108.2022] as [number, number],
+    zoom: 13,
+  });
   
-  // State for the Floating AI Assistant
+  // State cho Trợ lý AI nổi
   const [chatMessages, setChatMessages] = useState<ChatMessage[]>([
     { 
       role: 'model', 
-      content: 'Xin chào! Tôi là Trợ lý AI Môi trường Đà Nẵng. Tôi có thể giúp gì cho bạn hôm nay?',
+      content: 'Xin chào! Tôi là Trợ lý AI của DA NANG GREEN. Tôi có thể giúp gì cho bạn hôm nay?',
       suggestions: [
-        "Làm thế nào để phân loại rác đúng cách?",
+        "Cách phân loại rác đúng cách?",
         "Báo cáo một điểm xả rác trái phép.",
-        "Các mẹo tiết kiệm nước là gì?",
+        "Một số mẹo tiết kiệm nước là gì?",
       ]
     }
   ]);
   const [isChatLoading, setIsChatLoading] = useState<boolean>(false);
   const [isChatOpen, setIsChatOpen] = useState(false);
   
-  // Effect to load and save reports to localStorage
+  // Effect để tải và lưu báo cáo vào localStorage
   useEffect(() => {
     try {
-      localStorage.setItem('daNangXanhReports', JSON.stringify(reports));
+      localStorage.setItem('daNangGreenReports', JSON.stringify(reports));
     } catch (error) {
       console.error("Lỗi khi lưu báo cáo vào localStorage:", error);
     }
   }, [reports]);
 
-  // Effect to load points from localStorage on initial render
+  // Effect để tải điểm từ localStorage khi render lần đầu
   useEffect(() => {
     try {
-      const savedPoints = localStorage.getItem('daNangXanhUserPoints');
+      const savedPoints = localStorage.getItem('daNangGreenUserPoints');
       if (savedPoints) {
         setUserPoints(parseInt(savedPoints, 10) || 0);
       }
@@ -157,10 +187,10 @@ const App: React.FC = () => {
     }
   }, []);
 
-  // Effect to save points to localStorage whenever they change
+  // Effect để lưu điểm vào localStorage mỗi khi chúng thay đổi
   useEffect(() => {
     try {
-      localStorage.setItem('daNangXanhUserPoints', userPoints.toString());
+      localStorage.setItem('daNangGreenUserPoints', userPoints.toString());
     } catch (error) {
       console.error("Lỗi khi lưu điểm vào localStorage:", error);
     }
@@ -177,7 +207,7 @@ const App: React.FC = () => {
       console.log("Tự động làm mới dữ liệu báo cáo...");
       const newReport = createMockReport();
       setReports(prevReports => [newReport, ...prevReports]);
-      addToast('Đã nhận được báo cáo mới!');
+      addToast('Đã nhận báo cáo mới!');
     }, 30000); // 30 giây
 
     return () => clearInterval(intervalId); // Dọn dẹp khi component unmount
@@ -193,41 +223,33 @@ const App: React.FC = () => {
   };
 
   const handleAddNewReport = async (
-    imageFile: File,
+    mediaFile: File,
     userDescription: string,
-    coords: { latitude: number; longitude: number }
+    coords: { latitude: number; longitude: number },
+    aiAnalysis: AIAnalysis // Nhận kết quả phân tích đã được xác thực
   ) => {
     setIsLoading(true);
     setError(null);
     
     try {
       const reader = new FileReader();
-      reader.readAsDataURL(imageFile);
+      reader.readAsDataURL(mediaFile);
       reader.onload = async () => {
-        const base64String = (reader.result as string).split(',')[1];
-        const mimeType = imageFile.type;
-
-        // Perform both analyses concurrently for better performance
-        const [aiAnalysis, isTrash] = await Promise.all([
-          analyzeEnvironmentalImage(base64String, mimeType),
-          isImageTrash(base64String, mimeType)
-        ]);
-        
         const newReport: EnvironmentalReport = {
           id: new Date().toISOString(),
-          imageUrl: reader.result as string,
+          mediaUrl: reader.result as string,
+          mediaType: mediaFile.type.startsWith('video') ? 'video' : 'image',
           latitude: coords.latitude,
           longitude: coords.longitude,
           userDescription,
-          aiAnalysis,
-          status: 'Mới báo cáo',
+          aiAnalysis, // Sử dụng trực tiếp kết quả phân tích
+          status: 'Báo cáo mới',
           timestamp: new Date(),
-          isTrashLikely: isTrash,
         };
         
         setReports(prevReports => [newReport, ...prevReports]);
         
-        // Award points for new report
+        // Tặng điểm cho báo cáo mới
         const pointsAwarded = 10;
         setUserPoints(prevPoints => prevPoints + pointsAwarded);
         setLastAwardedPoints(pointsAwarded);
@@ -236,11 +258,11 @@ const App: React.FC = () => {
         setIsLoading(false);
       };
        reader.onerror = () => {
-         throw new Error('Không thể đọc tệp hình ảnh.');
+         throw new Error('Không thể đọc tệp media.');
       }
     } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : 'Đã có lỗi không xác định xảy ra.';
-      setError(`Lỗi tạo báo cáo: ${errorMessage}`);
+      const errorMessage = err instanceof Error ? err.message : 'Đã xảy ra lỗi không xác định.';
+      setError(`Lỗi khi tạo báo cáo: ${errorMessage}`);
       setIsLoading(false);
       console.error(err);
     }
@@ -248,9 +270,9 @@ const App: React.FC = () => {
   
   const handleUpdateReportStatus = (reportId: string) => {
      const statusCycle: Record<ReportStatus, ReportStatus> = {
-      'Mới báo cáo': 'Đang xử lý',
+      'Báo cáo mới': 'Đang xử lý',
       'Đang xử lý': 'Đã xử lý',
-      'Đã xử lý': 'Mới báo cáo',
+      'Đã xử lý': 'Báo cáo mới',
     };
     
     setReports(prevReports =>
@@ -263,7 +285,7 @@ const App: React.FC = () => {
 
     const newStatus = statusCycle[selectedReport!.status];
     setSelectedReport(prev => prev ? {...prev, status: newStatus} : null);
-    addToast('Trạng thái báo cáo đã được cập nhật thành công!');
+    addToast('Cập nhật trạng thái báo cáo thành công!');
   };
 
   const handleSelectReport = (report: EnvironmentalReport | null) => {
@@ -291,12 +313,12 @@ const App: React.FC = () => {
 
   const handleNavigateFromThankYou = (destination: 'home' | 'map') => {
     setView(destination);
-    setLastAwardedPoints(0); // Reset points so message doesn't show again
+    setLastAwardedPoints(0); // Đặt lại điểm để thông báo không hiển thị lại
   };
 
   const handleSelectReportAndNavigateToMap = (report: EnvironmentalReport) => {
     setView('map');
-    // Setting the selected report will cause the modal to appear on the map view
+    // Đặt báo cáo được chọn sẽ làm cho modal xuất hiện trên chế độ xem bản đồ
     setSelectedReport(report);
   };
 
@@ -307,6 +329,10 @@ const App: React.FC = () => {
   const handleCloseEducationModal = () => {
     setSelectedEducationTopic(null);
   };
+
+  const handleMapViewChange = useCallback((center: L.LatLng, zoom: number) => {
+    setMapViewState({ center: [center.lat, center.lng], zoom });
+  }, []);
 
   const renderContent = () => {
     switch(view) {
@@ -325,6 +351,9 @@ const App: React.FC = () => {
                   onSelectReport={handleSelectReport} 
                   onNavigateHome={() => setView('home')}
                   onStartNewReport={() => handleStartNewReport('map')}
+                  selectedReport={selectedReport}
+                  initialViewState={mapViewState}
+                  onViewChange={handleMapViewChange}
                 />;
       case 'form':
         return <ReportForm
@@ -340,7 +369,11 @@ const App: React.FC = () => {
                   onNavigateToMap={() => handleNavigateFromThankYou('map')}
                 />;
       case 'environmentalMap':
-        return <EnvironmentalMapView onNavigateHome={() => setView('home')} />;
+        return <EnvironmentalMapView
+                  reports={reports}
+                  onNavigateHome={() => setView('home')}
+                  onSelectReport={handleSelectReport}
+                />;
       default:
          return <HomeView 
                   reports={reports} 
@@ -361,7 +394,7 @@ const App: React.FC = () => {
           <div className="flex items-center space-x-3 cursor-pointer" onClick={() => setView('home')}>
              <LogoIcon className="w-10 h-10" />
             <h1 className="text-2xl font-bold text-slate-800">
-              Đà Nẵng <span className="text-teal-600">Xanh</span>
+              DA NANG <span className="text-teal-600">GREEN</span>
             </h1>
           </div>
            <div className="flex items-center space-x-2 bg-amber-100 text-amber-800 font-bold px-3 py-1.5 rounded-full text-sm">
@@ -391,7 +424,7 @@ const App: React.FC = () => {
         )}
       </main>
 
-      {/* Floating AI Assistant */}
+      {/* Trợ lý AI nổi */}
       <FloatingAIAssistant
         isOpen={isChatOpen}
         onToggle={() => setIsChatOpen(prev => !prev)}
