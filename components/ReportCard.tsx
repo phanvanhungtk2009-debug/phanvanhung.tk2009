@@ -1,8 +1,10 @@
+
 import React from 'react';
 import { AIAnalysis } from '../types';
 import { LocationIcon } from './icons/LocationIcon';
 import { SeverityIcon } from './icons/SeverityIcon';
 import { SparklesIcon } from './icons/SparklesIcon';
+import { LifebuoyIcon } from './icons/LifebuoyIcon';
 
 interface ReportCardProps {
   analysis: AIAnalysis;
@@ -93,6 +95,24 @@ const ReportCard: React.FC<ReportCardProps> = ({ analysis }) => {
                   <div className="ml-3">
                     <h4 className="text-md font-bold text-indigo-800">Giải pháp đề xuất</h4>
                     <p className="text-sm text-indigo-700 mt-1">{analysis.solution}</p>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {analysis.recommendedSupplies && analysis.recommendedSupplies.length > 0 && (
+               <div className="bg-orange-50 border-l-4 border-orange-400 p-4 rounded-r-lg">
+                <div className="flex items-start">
+                  <div className="flex-shrink-0">
+                    <LifebuoyIcon className="h-6 w-6 text-orange-500" />
+                  </div>
+                  <div className="ml-3">
+                    <h4 className="text-md font-bold text-orange-800">Nhu yếu phẩm cần thiết</h4>
+                    <ul className="list-disc list-inside text-sm text-orange-700 mt-1">
+                      {analysis.recommendedSupplies.map((item, index) => (
+                        <li key={index}>{item}</li>
+                      ))}
+                    </ul>
                   </div>
                 </div>
               </div>

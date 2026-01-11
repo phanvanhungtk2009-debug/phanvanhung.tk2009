@@ -1,3 +1,4 @@
+
 // FIX: Add import for React to resolve 'Cannot find namespace React' error.
 import React from 'react';
 
@@ -9,6 +10,7 @@ export interface AIAnalysis {
   priority: 'Cao' | 'Trung bình' | 'Thấp';
   solution: string; // Giải pháp do AI đề xuất
   isIssuePresent: boolean; // Cờ để xác thực hình ảnh/video có sự cố môi trường
+  recommendedSupplies?: string[]; // Danh sách nhu yếu phẩm (cho thiên tai)
 }
 
 export interface EnvironmentalReport {
@@ -23,10 +25,22 @@ export interface EnvironmentalReport {
   timestamp: Date;
 }
 
+export interface GroundingChunk {
+  maps?: {
+    uri: string;
+    title: string;
+  };
+  web?: {
+    uri: string;
+    title: string;
+  };
+}
+
 export interface ChatMessage {
   role: 'user' | 'model';
   content: string;
   suggestions?: string[];
+  groundingChunks?: GroundingChunk[];
 }
 
 export interface ToastMessage {

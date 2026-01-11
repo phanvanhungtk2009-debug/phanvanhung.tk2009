@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { EnvironmentalReport, ReportStatus, EducationalTopic } from '../types';
 import { ClipboardListIcon } from './icons/ClipboardListIcon';
@@ -10,6 +11,7 @@ import { RecycleIcon } from './icons/RecycleIcon';
 import { PlasticBottleIcon } from './icons/PlasticBottleIcon';
 import { WaterDropIcon } from './icons/WaterDropIcon';
 import { GlobeIcon } from './icons/GlobeIcon';
+import { SOSIcon } from './icons/SOSIcon';
 
 
 interface HomeViewProps {
@@ -19,6 +21,7 @@ interface HomeViewProps {
   onSelectReportAndNavigateToMap: (report: EnvironmentalReport) => void;
   onSelectEducationTopic: (topic: EducationalTopic) => void;
   onNavigateToEnvironmentalMap: () => void;
+  onNavigateToSOS: () => void;
 }
 
 const educationalContent: EducationalTopic[] = [
@@ -110,7 +113,7 @@ const getStatusDetails = (status: ReportStatus) => {
 };
 
 
-const HomeView: React.FC<HomeViewProps> = ({ reports, onNavigateToMap, onStartNewReport, onSelectReportAndNavigateToMap, onSelectEducationTopic, onNavigateToEnvironmentalMap }) => {
+const HomeView: React.FC<HomeViewProps> = ({ reports, onNavigateToMap, onStartNewReport, onSelectReportAndNavigateToMap, onSelectEducationTopic, onNavigateToEnvironmentalMap, onNavigateToSOS }) => {
   const totalReports = reports.length;
   const resolvedReports = reports.filter(r => r.status === 'Đã xử lý').length;
 
@@ -194,6 +197,10 @@ const HomeView: React.FC<HomeViewProps> = ({ reports, onNavigateToMap, onStartNe
                 <button onClick={onNavigateToEnvironmentalMap} className="md:col-span-2 text-lg bg-indigo-600 text-white font-bold py-3 px-4 rounded-lg shadow-md hover:bg-indigo-700 transition-all duration-300 flex items-center justify-center space-x-2 transform hover:scale-105">
                   <GlobeIcon className="w-6 h-6" />
                   <span>Khám phá bản đồ môi trường</span>
+                </button>
+                <button onClick={onNavigateToSOS} className="md:col-span-2 text-lg bg-red-600 text-white font-bold py-3 px-4 rounded-lg shadow-md hover:bg-red-700 transition-all duration-300 flex items-center justify-center space-x-2 transform hover:scale-105 animate-pulse">
+                  <SOSIcon className="w-6 h-6" />
+                  <span>KHẨN CẤP / SOS</span>
                 </button>
                </div>
             </div>

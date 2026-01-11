@@ -3,6 +3,7 @@ import { ChatMessage } from '../types';
 import { PaperAirplaneIcon } from './icons/PaperAirplaneIcon';
 import { SparklesIcon } from './icons/SparklesIcon';
 import { XMarkIcon } from './icons/XMarkIcon';
+import { GlobeIcon } from './icons/GlobeIcon';
 
 interface FloatingAIAssistantProps {
     isOpen: boolean;
@@ -65,8 +66,31 @@ const FloatingAIAssistant: React.FC<FloatingAIAssistantProps> = ({ isOpen, onTog
                             <div className="space-y-4">
                                 {messages.map((msg, index) => (
                                     <div key={index} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
-                                        <div className={`max-w-xs md:max-w-sm px-4 py-2 rounded-2xl shadow-sm ${msg.role === 'user' ? 'bg-teal-600 text-white' : 'bg-white/80 text-gray-800'}`}>
-                                            <p className="text-sm whitespace-pre-wrap">{msg.content}</p>
+                                        <div className={`flex flex-col ${msg.role === 'user' ? 'items-end' : 'items-start'}`}>
+                                            <div className={`max-w-xs md:max-w-sm px-4 py-2 rounded-2xl shadow-sm ${msg.role === 'user' ? 'bg-teal-600 text-white' : 'bg-white/80 text-gray-800'}`}>
+                                                <p className="text-sm whitespace-pre-wrap">{msg.content}</p>
+                                            </div>
+                                            {msg.groundingChunks && msg.groundingChunks.length > 0 && (
+                                                <div className="mt-2 max-w-xs md:max-w-sm w-full space-y-1">
+                                                    {msg.groundingChunks.map((chunk, chunkIndex) => (
+                                                        chunk.maps && (
+                                                            <a 
+                                                                key={chunkIndex}
+                                                                href={chunk.maps.uri}
+                                                                target="_blank"
+                                                                rel="noopener noreferrer"
+                                                                className="flex items-center space-x-2 bg-white/90 p-2 rounded-lg border border-gray-200 hover:bg-teal-50 hover:border-teal-200 transition-colors text-sm group"
+                                                            >
+                                                                <GlobeIcon className="w-5 h-5 text-gray-400 flex-shrink-0" />
+                                                                <div>
+                                                                    <p className="font-semibold text-gray-700 group-hover:text-teal-700 truncate">{chunk.maps.title}</p>
+                                                                    <p className="text-xs text-blue-600 group-hover:underline truncate">Xem trên Google Maps</p>
+                                                                </div>
+                                                            </a>
+                                                        )
+                                                    ))}
+                                                </div>
+                                            )}
                                         </div>
                                     </div>
                                 ))}

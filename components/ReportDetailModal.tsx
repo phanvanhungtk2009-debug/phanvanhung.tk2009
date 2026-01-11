@@ -80,51 +80,51 @@ const ReportDetailModal: React.FC<ReportDetailModalProps> = ({ report, onClose, 
                 <h3 className="text-lg font-bold text-gray-800 mb-2">
                   Thông tin đã gửi
                 </h3>
-                <div className="bg-white p-3 rounded-lg border border-gray-200 space-y-3">
+                <div className="bg-white p-4 rounded-lg border border-gray-200 space-y-4">
                   {report.userDescription && (
                     <div>
                       <p className="text-sm font-medium text-gray-500">
                         Mô tả của người dùng
                       </p>
-                      <p className="text-gray-700">{report.userDescription}</p>
+                      <p className="text-gray-700 mt-1">{report.userDescription}</p>
                     </div>
                   )}
-                  <div>
-                    <p className="text-sm font-medium text-gray-500 flex items-center">
-                      <LocationIcon className="w-4 h-4 mr-1.5" /> Tọa độ GPS
-                    </p>
-                    <p className="text-gray-700 font-mono text-sm">{`${report.latitude.toFixed(5)}, ${report.longitude.toFixed(5)}`}</p>
-                  </div>
-                  <div>
-                    <p className="text-sm font-medium text-gray-500">
-                      Thời gian báo cáo
-                    </p>
-                    <p className="text-gray-700 text-sm">
-                      {report.timestamp.toLocaleString('vi-VN')}
-                    </p>
+                   <div className="flex items-start pt-4 border-t border-gray-100 first:pt-0 first:border-t-0">
+                      <LocationIcon className="w-5 h-5 mt-0.5 text-gray-400 flex-shrink-0" />
+                      <div className="ml-3">
+                        <p className="text-sm font-medium text-gray-500">Vị trí</p>
+                        <a 
+                           href={`https://www.google.com/maps?q=${report.latitude},${report.longitude}`}
+                           target="_blank"
+                           rel="noopener noreferrer"
+                           className="text-sm text-blue-600 hover:underline font-mono"
+                        >
+                            {`${report.latitude.toFixed(5)}, ${report.longitude.toFixed(5)}`}
+                        </a>
+                      </div>
                   </div>
                 </div>
               </div>
-
-              {/* Phân tích của AI */}
-              <div>
-                <ReportCard analysis={report.aiAnalysis} />
+              
+              <ReportCard analysis={report.aiAnalysis} />
+              
+              <div className="pt-2">
+                 <h3 className="text-lg font-bold text-gray-800 mb-2">Hành động</h3>
+                 <button
+                  onClick={() => onUpdateStatus(report.id)}
+                  className="w-full bg-teal-600 text-white font-bold py-3 px-6 rounded-lg shadow-md hover:bg-teal-700 transition-colors focus:outline-none focus:ring-2 focus:ring-teal-500 focus:ring-offset-2"
+                >
+                  Chuyển trạng thái tiếp theo
+                </button>
               </div>
+
             </div>
           </div>
         </div>
-
-        <footer className="p-4 mt-auto border-t border-gray-200 sticky bottom-0 bg-gray-50/80 backdrop-blur-sm">
-            <button
-                onClick={() => onUpdateStatus(report.id)}
-                className="w-full bg-teal-600 text-white font-bold py-3 px-6 rounded-lg shadow-md hover:bg-teal-700 transition-transform transform hover:scale-105 duration-300 focus:outline-none focus:ring-2 focus:ring-teal-500 focus:ring-offset-2"
-            >
-                Cập nhật trạng thái (Mô phỏng Admin)
-            </button>
-        </footer>
       </div>
     </div>
   );
 };
 
+// FIX: Add default export for the component to be imported in App.tsx.
 export default ReportDetailModal;

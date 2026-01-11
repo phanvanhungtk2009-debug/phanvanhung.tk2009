@@ -1,8 +1,9 @@
+
 import React, { useState, useCallback, useEffect } from 'react';
 import * as L from 'leaflet';
 // FIX: Import `askAIAboutEnvironment` to resolve reference error in `handleChatSubmit`.
 import { analyzeEnvironmentalImage, askAIAboutEnvironment } from './services/geminiService';
-import { EnvironmentalReport, AIAnalysis, ReportStatus, ChatMessage, ToastMessage, EducationalTopic } from './types';
+import { EnvironmentalReport, AIAnalysis, ReportStatus, ChatMessage, ToastMessage, EducationalTopic, EnvironmentalPOI } from './types';
 import MainMapView from './components/MainMapView';
 import ReportForm from './components/ReportForm';
 import ReportDetailModal from './components/ReportDetailModal';
@@ -14,6 +15,8 @@ import { LogoIcon } from './components/icons/LogoIcon';
 import { TrophyIcon } from './components/icons/TrophyIcon';
 import EducationDetailModal from './components/EducationDetailModal';
 import EnvironmentalMapView from './components/EnvironmentalMapView';
+import SOSView from './components/SOSView';
+import { SOSIcon } from './components/icons/SOSIcon';
 
 // Dữ liệu giả lập để mô phỏng các báo cáo đã có trong cơ sở dữ liệu
 const initialReports: EnvironmentalReport[] = [
@@ -47,6 +50,7 @@ const initialReports: EnvironmentalReport[] = [
       priority: 'Cao',
       solution: 'Cảnh báo người dân, điều tiết giao thông và huy động đội thoát nước khơi thông hệ thống cống.',
       isIssuePresent: true,
+      recommendedSupplies: ["Nước sạch đóng chai", "Thực phẩm khô (lương khô, mì gói)", "Áo phao", "Đèn pin"]
     },
     status: 'Đang xử lý',
     timestamp: new Date(Date.now() - 86400000), // 1 ngày trước
@@ -81,11 +85,49 @@ const initialReports: EnvironmentalReport[] = [
       priority: 'Cao',
       solution: 'Cần phong tỏa khu vực, đặt biển báo nguy hiểm và cử đội công trình đến khắc phục ngay lập tức.',
       isIssuePresent: true,
+      recommendedSupplies: ["Dụng cụ sơ cứu y tế", "Nước uống", "Xẻng/Cuốc (hỗ trợ cứu nạn)", "Thực phẩm dự trữ"]
     },
     status: 'Báo cáo mới',
     timestamp: new Date(Date.now() - 3600000 * 3), // 3 giờ trước
   },
 ];
+
+// Dữ liệu các điểm môi trường quan trọng (POIs)
+const environmentalPOIs: EnvironmentalPOI[] = [
+  {
+    id: 'poi-1',
+    type: 'NatureReserve',
+    name: 'Khu bảo tồn thiên nhiên Sơn Trà',
+    description: 'Một công viên quốc gia đa dạng sinh học, là nơi sinh sống của loài Voọc chà vá chân nâu quý hiếm. Nơi tuyệt vời để đi bộ đường dài và tìm hiểu về thiên nhiên.',
+    latitude: 16.1333,
+    longitude: 108.2833,
+  },
+  {
+    id: 'poi-2',
+    type: 'RecyclingCenter',
+    name: 'Trung tâm Tái chế Đà Nẵng Xanh',
+    description: 'Tiếp nhận các vật liệu có thể tái chế như nhựa, giấy, kim loại và thủy tinh. Giúp giảm thiểu rác thải và bảo vệ tài nguyên.',
+    latitude: 16.031,
+    longitude: 108.182,
+  },
+  {
+    id: 'poi-3',
+    type: 'CommunityCleanup',
+    name: 'Điểm tập kết dọn dẹp Bãi biển Mỹ Khê',
+    description: 'Điểm hẹn hàng tuần cho các tình nguyện viên tham gia các hoạt động làm sạch bãi biển, giữ gìn vẻ đẹp cho một trong những bãi biển đẹp nhất hành tinh.',
+    latitude: 16.0585,
+    longitude: 108.248,
+  },
+  {
+    id: 'poi-4',
+    type: 'WaterStation',
+    name: 'Trạm nước uống công cộng Cầu Rồng',
+    description: 'Trạm nạp nước miễn phí giúp giảm thiểu việc sử dụng chai nhựa dùng một lần. Hãy mang theo chai cá nhân của bạn!',
+    latitude: 16.0615,
+    longitude: 108.2275,
+  },
+];
+
 
 // Hàm tạo báo cáo giả để mô phỏng dữ liệu mới
 const createMockReport = (): EnvironmentalReport => {
@@ -137,7 +179,7 @@ const App: React.FC = () => {
     return initialReports;
   });
   
-  const [view, setView] = useState<'home' | 'map' | 'form' | 'thankYou' | 'environmentalMap'>('home');
+  const [view, setView] = useState<'home' | 'map' | 'form' | 'thankYou' | 'environmentalMap' | 'sos'>('home');
   const [previousView, setPreviousView] = useState<'home' | 'map'>('home');
   const [selectedReport, setSelectedReport] = useState<EnvironmentalReport | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(false);
@@ -165,6 +207,7 @@ const App: React.FC = () => {
   ]);
   const [isChatLoading, setIsChatLoading] = useState<boolean>(false);
   const [isChatOpen, setIsChatOpen] = useState(false);
+  const [userLocation, setUserLocation] = useState<{ latitude: number; longitude: number } | null>(null);
   
   // Effect để tải và lưu báo cáo vào localStorage
   useEffect(() => {
@@ -184,6 +227,23 @@ const App: React.FC = () => {
       }
     } catch (error) {
       console.error("Lỗi khi tải điểm từ localStorage:", error);
+    }
+  }, []);
+
+    // Effect để lấy vị trí của người dùng một lần
+  useEffect(() => {
+    if (navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition(
+        (position) => {
+          setUserLocation({
+            latitude: position.coords.latitude,
+            longitude: position.coords.longitude,
+          });
+        },
+        (error) => {
+          console.warn("Không thể lấy vị trí người dùng:", error.message);
+        }
+      );
     }
   }, []);
 
@@ -300,8 +360,12 @@ const App: React.FC = () => {
     setIsChatLoading(true);
 
     try {
-      const aiResponse = await askAIAboutEnvironment(userMessage);
-      const newAiMessage: ChatMessage = { role: 'model', content: aiResponse };
+      const aiResponse = await askAIAboutEnvironment(userMessage, userLocation);
+      const newAiMessage: ChatMessage = {
+        role: 'model',
+        content: aiResponse.text,
+        groundingChunks: aiResponse.groundingChunks,
+      };
       setChatMessages(prev => [...prev, newAiMessage]);
     } catch (error) {
       const errorMessage: ChatMessage = { role: 'model', content: "Xin lỗi, tôi đang gặp sự cố. Vui lòng thử lại sau." };
@@ -344,6 +408,7 @@ const App: React.FC = () => {
                   onSelectReportAndNavigateToMap={handleSelectReportAndNavigateToMap}
                   onSelectEducationTopic={handleSelectEducationTopic}
                   onNavigateToEnvironmentalMap={() => setView('environmentalMap')}
+                  onNavigateToSOS={() => setView('sos')}
                 />;
       case 'map':
         return <MainMapView 
@@ -371,9 +436,12 @@ const App: React.FC = () => {
       case 'environmentalMap':
         return <EnvironmentalMapView
                   reports={reports}
+                  pois={environmentalPOIs}
                   onNavigateHome={() => setView('home')}
                   onSelectReport={handleSelectReport}
                 />;
+      case 'sos':
+        return <SOSView onClose={() => setView('home')} />;
       default:
          return <HomeView 
                   reports={reports} 
@@ -382,6 +450,7 @@ const App: React.FC = () => {
                   onSelectReportAndNavigateToMap={handleSelectReportAndNavigateToMap}
                   onSelectEducationTopic={handleSelectEducationTopic}
                    onNavigateToEnvironmentalMap={() => setView('environmentalMap')}
+                   onNavigateToSOS={() => setView('sos')}
                 />;
     }
   }
@@ -393,15 +462,26 @@ const App: React.FC = () => {
         <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-3 flex items-center justify-between">
           <div className="flex items-center space-x-3 cursor-pointer" onClick={() => setView('home')}>
              <LogoIcon className="w-10 h-10" />
-            <h1 className="text-2xl font-bold text-slate-800">
+            <h1 className="text-2xl font-bold text-slate-800 hidden sm:block">
               DA NANG <span className="text-teal-600">GREEN</span>
             </h1>
           </div>
-           <div className="flex items-center space-x-2 bg-amber-100 text-amber-800 font-bold px-3 py-1.5 rounded-full text-sm">
-                <TrophyIcon className="w-6 h-6 text-amber-500" />
-                <span className="hidden sm:inline">Điểm:</span>
-                <span>{userPoints}</span>
-            </div>
+          
+           <div className="flex items-center space-x-2 sm:space-x-4">
+              <button
+                onClick={() => setView('sos')}
+                className="bg-red-600 text-white px-3 py-1.5 rounded-full text-sm font-bold flex items-center space-x-1 animate-pulse hover:bg-red-700 transition-colors shadow-md"
+              >
+                <SOSIcon className="w-5 h-5" />
+                <span className="hidden xs:inline">SOS</span>
+              </button>
+
+               <div className="flex items-center space-x-2 bg-amber-100 text-amber-800 font-bold px-3 py-1.5 rounded-full text-sm">
+                  <TrophyIcon className="w-6 h-6 text-amber-500" />
+                  <span className="hidden sm:inline">Điểm:</span>
+                  <span>{userPoints}</span>
+              </div>
+           </div>
         </div>
       </header>
       

@@ -1,10 +1,17 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useRef, useMemo, useState } from 'react';
 import * as L from 'leaflet';
-import { EnvironmentalReport, ReportStatus } from '../types';
+// FIX: Import `AIAnalysis` type to resolve reference errors.
+import { EnvironmentalReport, ReportStatus, AIAnalysis } from '../types';
 import { MapPinIcon } from './icons/MapPinIcon';
 import AddIcon from './icons/AddIcon';
 import { HomeIcon } from './icons/HomeIcon';
 import MapSearch from './MapSearch';
+import { LayersIcon } from './icons/LayersIcon';
+import { AllIssuesIcon } from './icons/AllIssuesIcon';
+import { TrashIcon } from './icons/TrashIcon';
+import { LandslideIcon } from './icons/LandslideIcon';
+import { FloodIcon } from './icons/FloodIcon';
+
 
 interface MainMapViewProps {
   reports: EnvironmentalReport[];
@@ -21,6 +28,33 @@ const statusColors: Record<ReportStatus, string> = {
   'Đang xử lý': '#f59e0b', // amber-500 from Tailwind (yellow was too light)
   'Đã xử lý': '#22c55e', // green-500 from Tailwind
 };
+
+// Định nghĩa các lớp bản đồ có sẵn
+const tileLayers = {
+  Default: {
+    url: 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
+    attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+  },
+  Light: {
+    url: 'https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png',
+    attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>'
+  },
+  Satellite: {
+      url: 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
+      attribution: 'Tiles &copy; Esri &mdash; i-cubed, USDA, USGS, AEX, GeoEye, Getmapping, Aerogrid, IGN, IGP, UPR-EGP, GIS User Community'
+  }
+};
+type TileLayerKey = keyof typeof tileLayers;
+
+
+// FIX: Changed JSX.Element to React.ReactElement to resolve "Cannot find namespace 'JSX'" error.
+const filterCategories: { name: string; icon: React.ReactElement; issueType: AIAnalysis['issueType'] | 'Tất cả' }[] = [
+    { name: 'Tất cả', icon: <AllIssuesIcon className="w-5 h-5" />, issueType: 'Tất cả' },
+    { name: 'Rác thải', icon: <TrashIcon className="w-5 h-5" />, issueType: 'Xả rác không đúng nơi quy định' },
+    { name: 'Sạt lở', icon: <LandslideIcon className="w-5 h-5" />, issueType: 'Sạt lở đất' },
+    { name: 'Ngập lụt', icon: <FloodIcon className="w-5 h-5" />, issueType: 'Ngập lụt' },
+];
+
 
 // Hàm tạo chuỗi SVG cho ghim bản đồ với màu động
 const getIconSVG = (color: string) => `
@@ -46,7 +80,37 @@ const MainMapView: React.FC<MainMapViewProps> = ({ reports, onSelectReport, onNa
   const mapContainerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<L.Map | null>(null);
   const markersRef = useRef<L.LayerGroup | null>(null);
-  const isInitialLoadRef = useRef(true); // Cờ để khớp với các giới hạn ban đầu
+  const tileLayerRef = useRef<L.TileLayer | null>(null);
+  
+  const [currentLayerKey, setCurrentLayerKey] = useState<TileLayerKey>('Default');
+  const [activeFilter, setActiveFilter] = useState<AIAnalysis['issueType'] | 'Tất cả'>('Tất cả');
+
+  const filteredReports = useMemo(() => {
+    if (activeFilter === 'Tất cả') {
+        return reports;
+    }
+    return reports.filter(r => r.aiAnalysis.issueType === activeFilter);
+  }, [reports, activeFilter]);
+
+
+  // Generate suggestions for autocomplete search
+  const suggestionsData = useMemo(() => {
+    const issueTypes = reports.map(r => r.aiAnalysis.issueType).filter(type => type !== 'Không có sự cố' && type !== 'Khác');
+    const commonTerms = [
+      'Rác thải',
+      'Ô nhiễm',
+      'Cầu Rồng',
+      'Bãi biển Mỹ Khê',
+      'Bán đảo Sơn Trà',
+      'Sông Hàn',
+      'Điểm nóng ô nhiễm',
+      'Ngập lụt',
+      'Sạt lở đất',
+      'Cây xanh',
+    ];
+    // Combine and get unique values
+    return [...new Set([...issueTypes, ...commonTerms])];
+  }, [reports]);
 
   // Khởi tạo bản đồ
   useEffect(() => {
@@ -55,10 +119,6 @@ const MainMapView: React.FC<MainMapViewProps> = ({ reports, onSelectReport, onNa
         center: initialViewState.center, // Sử dụng state ban đầu từ props
         zoom: initialViewState.zoom,     // Sử dụng state ban đầu từ props
       });
-
-      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-        attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-      }).addTo(map);
 
       // Lắng nghe các chuyển động của bản đồ để lưu state
       map.on('moveend', () => {
@@ -80,13 +140,33 @@ const MainMapView: React.FC<MainMapViewProps> = ({ reports, onSelectReport, onNa
     };
   }, []); // Mảng phụ thuộc rỗng đảm bảo điều này chỉ chạy một lần khi mount
 
-  // Cập nhật markers khi danh sách báo cáo thay đổi
+  // Cập nhật lớp bản đồ khi state thay đổi
+  useEffect(() => {
+    if (!mapRef.current) return;
+
+    // Xóa lớp cũ nếu có
+    if (tileLayerRef.current) {
+      tileLayerRef.current.remove();
+    }
+
+    // Tạo và thêm lớp mới
+    const newLayer = L.tileLayer(tileLayers[currentLayerKey].url, {
+      attribution: tileLayers[currentLayerKey].attribution
+    });
+    newLayer.addTo(mapRef.current).bringToBack();
+
+    // Lưu tham chiếu đến lớp mới
+    tileLayerRef.current = newLayer;
+
+  }, [currentLayerKey]);
+
+  // Cập nhật markers khi danh sách báo cáo hoặc bộ lọc thay đổi
   useEffect(() => {
     if (!mapRef.current || !markersRef.current) return;
 
     markersRef.current.clearLayers();
 
-    reports.forEach(report => {
+    filteredReports.forEach(report => {
       const marker = L.marker([report.latitude, report.longitude], {
         icon: createCustomIcon(report.status),
       });
@@ -99,7 +179,7 @@ const MainMapView: React.FC<MainMapViewProps> = ({ reports, onSelectReport, onNa
 
       markersRef.current?.addLayer(marker);
     });
-  }, [reports, onSelectReport]);
+  }, [filteredReports, onSelectReport]);
 
   // Điều chỉnh chế độ xem bản đồ
   useEffect(() => {
@@ -107,23 +187,24 @@ const MainMapView: React.FC<MainMapViewProps> = ({ reports, onSelectReport, onNa
 
     // Nếu một báo cáo cụ thể được chọn, hãy bay đến đó. Điều này được ưu tiên.
     if (selectedReport) {
-      mapRef.current.flyTo(
-        [selectedReport.latitude, selectedReport.longitude],
-        16, // Một mức zoom tốt cho một vị trí cụ thể
-        { animate: true, duration: 1 }
-      );
-      isInitialLoadRef.current = false; // Bất kỳ tương tác nào cũng được tính là không phải tải ban đầu
+      // Kiểm tra xem báo cáo được chọn có trong danh sách đã lọc không
+      const isSelectedInFilter = filteredReports.some(r => r.id === selectedReport.id);
+      if (isSelectedInFilter) {
+          mapRef.current.flyTo(
+            [selectedReport.latitude, selectedReport.longitude],
+            16, // Một mức zoom tốt cho một vị trí cụ thể
+            { animate: true, duration: 1 }
+          );
+      }
     } 
-    // Trong lần tải đầu tiên của phiên bản component này, nếu không có báo cáo nào được chọn trước,
-    // hãy điều chỉnh bản đồ để hiển thị tất cả các báo cáo có sẵn.
-    else if (isInitialLoadRef.current && reports.length > 0) {
-      const bounds = L.latLngBounds(reports.map(r => [r.latitude, r.longitude]));
+    // Nếu không, hãy điều chỉnh bản đồ để hiển thị tất cả các báo cáo đã được lọc.
+    else if (filteredReports.length > 0) {
+      const bounds = L.latLngBounds(filteredReports.map(r => [r.latitude, r.longitude]));
       if (bounds.isValid()) {
         mapRef.current.fitBounds(bounds, { padding: [50, 50], maxZoom: 16 });
       }
-      isInitialLoadRef.current = false; // Chỉ thực hiện điều này một lần
     }
-  }, [selectedReport, reports]);
+  }, [selectedReport, filteredReports]);
 
   const handleSearch = (latLng: L.LatLng) => {
     if (mapRef.current) {
@@ -131,11 +212,18 @@ const MainMapView: React.FC<MainMapViewProps> = ({ reports, onSelectReport, onNa
     }
   };
 
+  const handleToggleLayer = () => {
+    const layerKeys = Object.keys(tileLayers) as TileLayerKey[];
+    const currentIndex = layerKeys.indexOf(currentLayerKey);
+    const nextIndex = (currentIndex + 1) % layerKeys.length;
+    setCurrentLayerKey(layerKeys[nextIndex]);
+  };
+
   return (
     <div className="relative w-full h-full">
       <div ref={mapContainerRef} className="w-full h-full z-0" />
       
-      <div className="absolute top-4 left-4 z-10">
+      <div className="absolute top-4 left-4 z-10 flex flex-col space-y-2">
          <button
             onClick={onNavigateHome}
             className="bg-white/80 backdrop-blur-sm text-gray-700 rounded-full p-4 shadow-lg hover:bg-white transition-all focus:outline-none focus:ring-2 focus:ring-teal-500"
@@ -143,9 +231,35 @@ const MainMapView: React.FC<MainMapViewProps> = ({ reports, onSelectReport, onNa
           >
             <HomeIcon className="w-6 h-6" />
           </button>
+          <button
+            onClick={handleToggleLayer}
+            className="bg-white/80 backdrop-blur-sm text-gray-700 rounded-full p-4 shadow-lg hover:bg-white transition-all focus:outline-none focus:ring-2 focus:ring-teal-500"
+            aria-label="Thay đổi lớp bản đồ"
+            title={`Bản đồ: ${currentLayerKey}`}
+          >
+            <LayersIcon className="w-6 h-6" />
+          </button>
       </div>
       
-      <MapSearch onSearch={handleSearch} />
+      <div className="absolute top-4 right-4 z-10 flex flex-col items-end space-y-2">
+        <MapSearch onSearch={handleSearch} suggestionsData={suggestionsData} />
+        
+        {/* Bảng điều khiển bộ lọc */}
+        <div className="bg-white/80 backdrop-blur-sm p-2 rounded-full shadow-lg flex flex-col space-y-1">
+            {filterCategories.map((cat) => (
+                <button
+                    key={cat.name}
+                    onClick={() => setActiveFilter(cat.issueType)}
+                    className={`flex items-center space-x-2 w-full text-left p-2 rounded-full transition-all duration-200 ${activeFilter === cat.issueType ? 'bg-teal-500 text-white shadow' : 'text-gray-600 hover:bg-gray-200/50'}`}
+                    title={cat.name}
+                    aria-label={`Lọc theo ${cat.name}`}
+                >
+                    <div className="w-6 text-center">{cat.icon}</div>
+                </button>
+            ))}
+        </div>
+      </div>
+
 
       <div className="absolute bottom-4 left-4 bg-white/80 backdrop-blur-sm p-3 rounded-lg shadow-md z-10">
         <h4 className="font-bold text-sm mb-2 text-gray-700">Chú giải</h4>
