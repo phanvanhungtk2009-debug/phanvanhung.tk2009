@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useRef } from 'react';
 import ImageUploader from './ImageUploader';
 import Loader from './Loader';
@@ -30,7 +31,6 @@ const ReportForm: React.FC<ReportFormProps> = ({ onSubmit, onCancel, isLoading, 
 
   const locationJustFetched = useRef(false);
   const highlightTimeoutRef = useRef<number | null>(null);
-  const videoRef = useRef<HTMLVideoElement>(null); // Ref for video frame extraction
 
   const fetchLocation = () => {
     if (!navigator.geolocation) {
@@ -163,40 +163,48 @@ const ReportForm: React.FC<ReportFormProps> = ({ onSubmit, onCancel, isLoading, 
   };
 
   return (
-    <div className="container mx-auto p-4 sm:p-6 lg:p-8 max-w-3xl">
-      <div className="bg-white rounded-2xl shadow-lg border border-slate-200 p-6 sm:p-8 space-y-6">
-        <div>
-          <h2 className="text-2xl sm:text-3xl font-bold text-slate-800">Báo cáo sự cố môi trường mới</h2>
-          <p className="text-slate-500 mt-1">Tải ảnh hoặc video lên, AI sẽ tự động phân tích và xác thực giúp bạn.</p>
+    <div className="container mx-auto p-4 sm:p-6 lg:p-8 max-w-4xl">
+      <div className="bg-white rounded-3xl shadow-xl border border-slate-100 overflow-hidden">
+        {/* Header */}
+        <div className="bg-slate-50 border-b border-slate-100 p-6 sm:p-8">
+          <h2 className="text-2xl sm:text-3xl font-extrabold text-slate-800 tracking-tight">Gửi báo cáo sự cố</h2>
+          <p className="text-slate-500 mt-2">Đóng góp của bạn giúp Đà Nẵng xanh và sạch hơn. AI sẽ hỗ trợ bạn phân tích dữ liệu.</p>
         </div>
 
-        <form onSubmit={handleSubmit} className="space-y-6">
+        <form onSubmit={handleSubmit} className="p-6 sm:p-8 space-y-8">
+          {/* Step 1 */}
           <div className="space-y-4">
-            <label className="block text-sm font-medium text-slate-700">
-              1. Tải lên hình ảnh hoặc video <span className="text-red-500">*</span>
-            </label>
+             <div className="flex items-center space-x-3 mb-2">
+                <span className="flex items-center justify-center w-8 h-8 rounded-full bg-teal-100 text-teal-700 font-bold text-sm">1</span>
+                <label className="text-lg font-bold text-slate-700">Hình ảnh / Video sự cố <span className="text-red-500">*</span></label>
+             </div>
             <ImageUploader onImageChange={handleMediaChange} imageUrl={mediaUrl} mediaType={mediaType} />
           </div>
           
-           {/* Vùng hiển thị kết quả phân tích */}
-           <div className="min-h-[100px]">
-                {isAnalyzing && <Loader />}
+           {/* Analysis Result Area */}
+           <div className="min-h-[60px] transition-all duration-500">
+                {isAnalyzing && (
+                    <div className="bg-slate-50 rounded-2xl p-6 border border-slate-100">
+                         <Loader />
+                    </div>
+                )}
+                
                 {analysisMessage && (
-                    <div className="flex items-start gap-3 text-amber-800 bg-amber-100 p-4 rounded-lg border border-amber-200">
-                        <XCircleIcon className="w-8 h-8 flex-shrink-0 text-amber-600" />
+                    <div className="flex items-start gap-4 text-amber-800 bg-amber-50 p-5 rounded-2xl border border-amber-100 shadow-sm animate-fade-in">
+                        <XCircleIcon className="w-6 h-6 flex-shrink-0 text-amber-600 mt-0.5" />
                         <div>
-                            <p className="font-semibold">Không thể báo cáo</p>
-                            <p className="text-sm">{analysisMessage}</p>
+                            <p className="font-bold text-amber-900">Không thể xử lý</p>
+                            <p className="text-sm mt-1">{analysisMessage}</p>
                         </div>
                     </div>
                 )}
+                
                 {aiAnalysis && (
-                    <div className="space-y-4">
-                         <div className="flex items-start gap-3 text-green-800 bg-green-100 p-4 rounded-lg border border-green-200">
-                            <CheckCircleIcon className="w-8 h-8 flex-shrink-0 text-green-600" />
+                    <div className="space-y-4 animate-fade-in-up">
+                         <div className="flex items-center gap-3 text-green-800 bg-green-50 p-4 rounded-xl border border-green-100">
+                            <CheckCircleIcon className="w-6 h-6 flex-shrink-0 text-green-600" />
                             <div>
-                                <p className="font-semibold">Xác thực thành công!</p>
-                                <p className="text-sm">Media hợp lệ. AI đã phân tích sự cố bên dưới. Bạn có thể gửi báo cáo ngay bây giờ.</p>
+                                <p className="font-bold text-green-900">Xác thực thành công</p>
                             </div>
                         </div>
                         <ReportCard analysis={aiAnalysis} />
@@ -205,36 +213,43 @@ const ReportForm: React.FC<ReportFormProps> = ({ onSubmit, onCancel, isLoading, 
             </div>
 
 
-          <div>
-            <label htmlFor="description" className="block text-sm font-medium text-slate-700 mb-2">
-              2. Mô tả bổ sung (tùy chọn)
-            </label>
+          {/* Step 2 */}
+          <div className="space-y-4">
+             <div className="flex items-center space-x-3 mb-2">
+                <span className="flex items-center justify-center w-8 h-8 rounded-full bg-teal-100 text-teal-700 font-bold text-sm">2</span>
+                <label htmlFor="description" className="text-lg font-bold text-slate-700">Mô tả bổ sung</label>
+             </div>
             <textarea
               id="description"
-              rows={4}
-              className="w-full p-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-teal-500 transition-colors"
-              placeholder="Ví dụ: Xà bần xây dựng bị đổ trộm ở góc đường này..."
+              rows={3}
+              className="w-full p-4 bg-slate-50 border-none rounded-2xl focus:ring-2 focus:ring-teal-500 focus:bg-white transition-all resize-none placeholder-slate-400"
+              placeholder="Ví dụ: Đống rác này đã ở đây 3 ngày..."
               value={description}
               onChange={(e) => setDescription(e.target.value)}
             />
           </div>
 
-          <div>
-             <label className="block text-sm font-medium text-slate-700 mb-2">
-              3. Vị trí của bạn <span className="text-red-500">*</span>
-            </label>
-            <div className={`p-3 rounded-lg flex items-center justify-between transition-colors duration-500 ${locationJustFetched.current ? 'bg-green-100' : 'bg-slate-100'}`}>
+          {/* Step 3 */}
+          <div className="space-y-4">
+            <div className="flex items-center space-x-3 mb-2">
+                <span className="flex items-center justify-center w-8 h-8 rounded-full bg-teal-100 text-teal-700 font-bold text-sm">3</span>
+                <label className="text-lg font-bold text-slate-700">Vị trí sự cố <span className="text-red-500">*</span></label>
+             </div>
+            
+            <div className={`p-4 rounded-2xl flex items-center justify-between transition-all duration-500 border ${locationJustFetched.current ? 'bg-green-50 border-green-200' : 'bg-slate-50 border-slate-100'}`}>
                 {isGettingLocation ? (
                     <div className="flex items-center text-slate-600 text-sm">
-                        <div className="w-4 h-4 border-2 border-t-teal-500 border-gray-300 rounded-full animate-spin mr-2"></div>
-                        Đang lấy vị trí của bạn...
+                        <div className="w-5 h-5 border-2 border-t-teal-500 border-gray-300 rounded-full animate-spin mr-3"></div>
+                        Đang lấy tọa độ GPS...
                     </div>
                 ) : coords ? (
                     <div className="flex items-center text-sm text-slate-800">
-                        <CheckCircleIcon className="w-6 h-6 mr-2 text-green-600 flex-shrink-0" />
+                        <div className="bg-green-100 p-2 rounded-full mr-3">
+                             <CheckCircleIcon className="w-5 h-5 text-green-600" />
+                        </div>
                         <div>
-                            <span className="font-semibold text-green-800">Đã xác nhận vị trí</span>
-                            <p className="font-mono text-xs text-slate-600">{`${coords.latitude.toFixed(5)}, ${coords.longitude.toFixed(5)}`}</p>
+                            <span className="font-bold text-green-800 block">Đã xác định vị trí</span>
+                            <p className="font-mono text-xs text-slate-500 mt-0.5">{`${coords.latitude.toFixed(6)}, ${coords.longitude.toFixed(6)}`}</p>
                         </div>
                     </div>
                 ) : (
@@ -246,37 +261,33 @@ const ReportForm: React.FC<ReportFormProps> = ({ onSubmit, onCancel, isLoading, 
                 <button 
                     type="button" 
                     onClick={fetchLocation} 
-                    className="text-teal-600 hover:text-teal-800 p-3 rounded-full hover:bg-teal-100 disabled:opacity-50"
+                    className="text-slate-500 hover:text-teal-600 p-2 rounded-full hover:bg-white transition-colors disabled:opacity-50"
                     disabled={isGettingLocation}
-                    aria-label="Tải lại vị trí"
+                    title="Lấy lại vị trí"
                 >
                     <RefreshIcon className={`w-5 h-5 ${isGettingLocation ? 'animate-spin' : ''}`} />
                 </button>
             </div>
           </div>
           
-          {error && <p className="text-sm text-red-600 bg-red-100 p-3 rounded-md">{error}</p>}
+          {error && <p className="text-sm text-red-600 bg-red-50 p-4 rounded-xl border border-red-100">{error}</p>}
           
-          {isLoading ? (
-            <Loader />
-          ) : (
-            <div className="flex items-center justify-end space-x-4 pt-4">
+          <div className="pt-6 border-t border-slate-100 flex items-center justify-end space-x-4">
               <button
                 type="button"
                 onClick={onCancel}
-                className="px-6 py-2 border border-slate-300 text-slate-700 font-semibold rounded-lg hover:bg-slate-100 transition-colors"
+                className="px-6 py-3 rounded-xl text-slate-600 font-bold hover:bg-slate-100 transition-colors"
               >
-                Hủy
+                Hủy bỏ
               </button>
               <button
                 type="submit"
                 disabled={!mediaFile || !coords || !aiAnalysis || isLoading}
-                className="px-6 py-2 bg-teal-600 text-white font-semibold rounded-lg shadow-md hover:bg-teal-700 transition-colors disabled:bg-gray-400 disabled:cursor-not-allowed"
+                className="px-8 py-3 bg-gradient-to-r from-teal-500 to-teal-600 text-white font-bold rounded-xl shadow-lg shadow-teal-200 hover:shadow-teal-300 hover:-translate-y-0.5 transition-all disabled:bg-none disabled:bg-slate-300 disabled:shadow-none disabled:cursor-not-allowed disabled:transform-none"
               >
-                Gửi báo cáo
+                {isLoading ? 'Đang gửi...' : 'Gửi Báo Cáo'}
               </button>
             </div>
-          )}
         </form>
       </div>
     </div>

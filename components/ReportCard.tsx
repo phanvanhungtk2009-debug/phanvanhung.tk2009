@@ -1,7 +1,6 @@
 
 import React from 'react';
 import { AIAnalysis } from '../types';
-import { LocationIcon } from './icons/LocationIcon';
 import { SeverityIcon } from './icons/SeverityIcon';
 import { SparklesIcon } from './icons/SparklesIcon';
 import { LifebuoyIcon } from './icons/LifebuoyIcon';
@@ -15,34 +14,38 @@ const getPriorityDetails = (priority: 'Cao' | 'Trung bình' | 'Thấp') => {
     case 'Cao':
       return {
         label: 'Cao',
-        bgColor: 'bg-red-100',
-        textColor: 'text-red-700',
-        meterColor: 'bg-red-500',
-        level: 3,
+        bg: 'bg-red-500',
+        text: 'text-red-700',
+        lightBg: 'bg-red-50',
+        border: 'border-red-200',
+        width: 'w-full',
       };
     case 'Trung bình':
       return {
         label: 'Trung bình',
-        bgColor: 'bg-yellow-100',
-        textColor: 'text-yellow-700',
-        meterColor: 'bg-yellow-500',
-        level: 2,
+        bg: 'bg-amber-500',
+        text: 'text-amber-700',
+        lightBg: 'bg-amber-50',
+        border: 'border-amber-200',
+        width: 'w-2/3',
       };
     case 'Thấp':
       return {
         label: 'Thấp',
-        bgColor: 'bg-green-100',
-        textColor: 'text-green-700',
-        meterColor: 'bg-green-500',
-        level: 1,
+        bg: 'bg-teal-500',
+        text: 'text-teal-700',
+        lightBg: 'bg-teal-50',
+        border: 'border-teal-200',
+        width: 'w-1/3',
       };
     default:
       return {
         label: 'Không rõ',
-        bgColor: 'bg-gray-100',
-        textColor: 'text-gray-700',
-        meterColor: 'bg-gray-400',
-        level: 0,
+        bg: 'bg-gray-400',
+        text: 'text-gray-700',
+        lightBg: 'bg-gray-50',
+        border: 'border-gray-200',
+        width: 'w-0',
       };
   }
 };
@@ -52,72 +55,74 @@ const ReportCard: React.FC<ReportCardProps> = ({ analysis }) => {
   const priorityDetails = getPriorityDetails(analysis.priority);
 
   return (
-    <div className="w-full bg-white rounded-xl overflow-hidden border border-slate-200">
-      <div className="p-4">
-        <h3 className="text-lg font-bold text-gray-800 mb-4">Phân tích tự động của AI</h3>
-        
-        <div className="space-y-4">
-            {/* Phần Mức độ ưu tiên nâng cao */}
-            <div className={`p-3 rounded-lg ${priorityDetails.bgColor}`}>
-              <div className="flex items-center justify-between">
-                <div className="flex items-center space-x-3">
-                  <SeverityIcon priority={analysis.priority} className={`w-7 h-7 ${priorityDetails.textColor}`} />
-                  <div>
-                    <p className="text-xs font-medium text-gray-500">Mức độ ưu tiên</p>
-                    <p className={`text-lg font-bold ${priorityDetails.textColor}`}>{priorityDetails.label}</p>
-                  </div>
-                </div>
-                {/* Thước đo trực quan */}
-                <div className="flex items-center gap-1.5" aria-label={`Mức độ ưu tiên: ${priorityDetails.label}`}>
-                  <div title="Thấp" className={`h-2 w-6 rounded-full transition-colors duration-300 ${priorityDetails.level >= 1 ? priorityDetails.meterColor : 'bg-gray-300/70'}`} />
-                  <div title="Trung bình" className={`h-2 w-6 rounded-full transition-colors duration-300 ${priorityDetails.level >= 2 ? priorityDetails.meterColor : 'bg-gray-300/70'}`} />
-                  <div title="Cao" className={`h-2 w-6 rounded-full transition-colors duration-300 ${priorityDetails.level >= 3 ? priorityDetails.meterColor : 'bg-gray-300/70'}`} />
-                </div>
-              </div>
-            </div>
-            
-            <div>
-              <p className="text-sm font-medium text-gray-500 mb-1">Loại sự cố</p>
-              <p className="text-gray-900 font-semibold bg-gray-100 p-2 rounded-md text-base">{analysis.issueType}</p>
-            </div>
-            
-            <div>
-              <p className="text-sm font-medium text-gray-500 mb-1">Mô tả chi tiết</p>
-              <p className="text-gray-700 bg-gray-100 p-2 rounded-md text-sm leading-relaxed">{analysis.description}</p>
-            </div>
-
-             {analysis.solution && (
-              <div className="bg-indigo-50 border-l-4 border-indigo-400 p-4 rounded-r-lg">
-                <div className="flex items-start">
-                  <div className="flex-shrink-0">
-                    <SparklesIcon className="h-6 w-6 text-indigo-500" />
-                  </div>
-                  <div className="ml-3">
-                    <h4 className="text-md font-bold text-indigo-800">Giải pháp đề xuất</h4>
-                    <p className="text-sm text-indigo-700 mt-1">{analysis.solution}</p>
-                  </div>
-                </div>
-              </div>
-            )}
-
-            {analysis.recommendedSupplies && analysis.recommendedSupplies.length > 0 && (
-               <div className="bg-orange-50 border-l-4 border-orange-400 p-4 rounded-r-lg">
-                <div className="flex items-start">
-                  <div className="flex-shrink-0">
-                    <LifebuoyIcon className="h-6 w-6 text-orange-500" />
-                  </div>
-                  <div className="ml-3">
-                    <h4 className="text-md font-bold text-orange-800">Nhu yếu phẩm cần thiết</h4>
-                    <ul className="list-disc list-inside text-sm text-orange-700 mt-1">
-                      {analysis.recommendedSupplies.map((item, index) => (
-                        <li key={index}>{item}</li>
-                      ))}
-                    </ul>
-                  </div>
-                </div>
-              </div>
-            )}
+    <div className="w-full bg-white rounded-2xl overflow-hidden shadow-sm border border-slate-200/60 ring-1 ring-slate-100">
+      
+      {/* Header with Priority and Type */}
+      <div className="p-5 border-b border-slate-100 flex items-start justify-between bg-gradient-to-r from-slate-50/50 to-white">
+        <div>
+           <p className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-1">Loại sự cố</p>
+           <h3 className="text-lg font-bold text-slate-800">{analysis.issueType}</h3>
         </div>
+        
+        <div className={`px-4 py-2 rounded-xl flex flex-col items-end ${priorityDetails.lightBg} border ${priorityDetails.border}`}>
+           <div className="flex items-center space-x-1.5 mb-1">
+              <span className={`text-xs font-bold uppercase ${priorityDetails.text}`}>{priorityDetails.label}</span>
+              <SeverityIcon priority={analysis.priority} className={`w-4 h-4 ${priorityDetails.text}`} />
+           </div>
+           {/* Modern Progress Bar */}
+           <div className="w-20 h-1.5 bg-white/60 rounded-full overflow-hidden">
+             <div className={`h-full rounded-full ${priorityDetails.bg} transition-all duration-500 ease-out`} style={{width: priorityDetails.width}}></div>
+           </div>
+        </div>
+      </div>
+      
+      <div className="p-5 space-y-6">
+        {/* Description Section */}
+        <div>
+          <h4 className="text-sm font-semibold text-slate-500 mb-2">Phân tích chi tiết</h4>
+          <p className="text-slate-700 text-sm leading-relaxed bg-slate-50/50 p-3 rounded-xl border border-slate-100">
+            {analysis.description}
+          </p>
+        </div>
+
+        {/* AI Solution Section */}
+         {analysis.solution && (
+          <div className="relative overflow-hidden rounded-xl bg-gradient-to-br from-indigo-50 to-white border border-indigo-100 shadow-sm">
+             <div className="absolute top-0 left-0 w-1 h-full bg-indigo-500"></div>
+             <div className="p-4">
+                <div className="flex items-center mb-2">
+                   <div className="bg-indigo-100 p-1.5 rounded-lg mr-3">
+                      <SparklesIcon className="h-4 w-4 text-indigo-600" />
+                   </div>
+                   <h4 className="text-sm font-bold text-indigo-900">Giải pháp đề xuất bởi AI</h4>
+                </div>
+                <p className="text-sm text-indigo-800 pl-11">{analysis.solution}</p>
+             </div>
+          </div>
+        )}
+
+        {/* Emergency Supplies Section */}
+        {analysis.recommendedSupplies && analysis.recommendedSupplies.length > 0 && (
+           <div className="relative overflow-hidden rounded-xl bg-gradient-to-br from-orange-50 to-white border border-orange-100 shadow-sm">
+            <div className="absolute top-0 left-0 w-1 h-full bg-orange-500"></div>
+            <div className="p-4">
+                <div className="flex items-center mb-2">
+                   <div className="bg-orange-100 p-1.5 rounded-lg mr-3">
+                      <LifebuoyIcon className="h-4 w-4 text-orange-600" />
+                   </div>
+                   <h4 className="text-sm font-bold text-orange-900">Nhu yếu phẩm cần thiết</h4>
+                </div>
+                <ul className="grid grid-cols-1 sm:grid-cols-2 gap-2 pl-11">
+                  {analysis.recommendedSupplies.map((item, index) => (
+                    <li key={index} className="flex items-center text-sm text-orange-800">
+                      <span className="w-1.5 h-1.5 bg-orange-400 rounded-full mr-2"></span>
+                      {item}
+                    </li>
+                  ))}
+                </ul>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );

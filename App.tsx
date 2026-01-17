@@ -456,28 +456,30 @@ const App: React.FC = () => {
   }
 
   return (
-    <div className="min-h-screen bg-teal-50 text-slate-800 flex flex-col">
+    <div className="min-h-screen bg-slate-50 font-sans text-slate-800 flex flex-col bg-[radial-gradient(ellipse_at_top_right,_var(--tw-gradient-stops))] from-teal-50 via-slate-50 to-white selection:bg-teal-100 selection:text-teal-900">
        <ToastContainer toasts={toasts} onDismiss={removeToast} />
-      <header className="bg-white/90 backdrop-blur-sm shadow-md z-20 sticky top-0 border-b border-slate-200">
+      <header className="bg-white/80 backdrop-blur-md shadow-sm z-20 sticky top-0 border-b border-slate-100 transition-all duration-300">
         <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-3 flex items-center justify-between">
-          <div className="flex items-center space-x-3 cursor-pointer" onClick={() => setView('home')}>
-             <LogoIcon className="w-10 h-10" />
-            <h1 className="text-2xl font-bold text-slate-800 hidden sm:block">
+          <div className="flex items-center space-x-3 cursor-pointer group" onClick={() => setView('home')}>
+             <div className="transform transition-transform group-hover:scale-105 duration-300">
+                <LogoIcon className="w-10 h-10 drop-shadow-sm" />
+             </div>
+            <h1 className="text-2xl font-extrabold tracking-tight text-transparent bg-clip-text bg-gradient-to-r from-slate-800 to-teal-700 hidden sm:block">
               DA NANG <span className="text-teal-600">GREEN</span>
             </h1>
           </div>
           
-           <div className="flex items-center space-x-2 sm:space-x-4">
+           <div className="flex items-center space-x-3 sm:space-x-4">
               <button
                 onClick={() => setView('sos')}
-                className="bg-red-600 text-white px-3 py-1.5 rounded-full text-sm font-bold flex items-center space-x-1 animate-pulse hover:bg-red-700 transition-colors shadow-md"
+                className="bg-red-600 text-white px-4 py-1.5 rounded-full text-sm font-bold flex items-center space-x-2 animate-pulse hover:bg-red-700 transition-all shadow-lg hover:shadow-red-200 transform hover:scale-105"
               >
                 <SOSIcon className="w-5 h-5" />
                 <span className="hidden xs:inline">SOS</span>
               </button>
 
-               <div className="flex items-center space-x-2 bg-amber-100 text-amber-800 font-bold px-3 py-1.5 rounded-full text-sm">
-                  <TrophyIcon className="w-6 h-6 text-amber-500" />
+               <div className="flex items-center space-x-2 bg-gradient-to-r from-amber-50 to-yellow-50 border border-amber-100 text-amber-900 font-bold px-4 py-1.5 rounded-full text-sm shadow-sm">
+                  <TrophyIcon className="w-5 h-5 text-amber-500" />
                   <span className="hidden sm:inline">Điểm:</span>
                   <span>{userPoints}</span>
               </div>
@@ -485,7 +487,7 @@ const App: React.FC = () => {
         </div>
       </header>
       
-      <main className="flex-grow relative">
+      <main className="flex-grow relative flex flex-col">
          {renderContent()}
         
         {selectedReport && (

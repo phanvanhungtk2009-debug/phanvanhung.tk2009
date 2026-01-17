@@ -27,9 +27,9 @@ interface HomeViewProps {
 const educationalContent: EducationalTopic[] = [
   {
     id: 'waste-sorting',
-    icon: <RecycleIcon className="w-10 h-10 text-green-600" />,
+    icon: <RecycleIcon className="w-8 h-8 text-green-600" />,
     title: "Phân loại rác tại nguồn",
-    description: "Tách riêng rác hữu cơ, tái chế và rác khác giúp giảm gánh nặng cho bãi chôn lấp và bảo tồn tài nguyên.",
+    description: "Tách riêng rác hữu cơ, tái chế và rác khác.",
     details: {
       importance: "Phân loại rác đúng cách giúp tối đa hóa tỷ lệ tái chế, giảm thiểu ô nhiễm đất và nước, và tiết kiệm tài nguyên thiên nhiên.",
       solutions: [
@@ -42,9 +42,9 @@ const educationalContent: EducationalTopic[] = [
   },
   {
     id: 'plastic-reduction',
-    icon: <PlasticBottleIcon className="w-10 h-10 text-blue-600" />,
-    title: "Giảm thiểu nhựa dùng một lần",
-    description: "Sử dụng túi vải, chai nước cá nhân và hộp đựng thức ăn để hạn chế rác thải nhựa gây hại cho đại dương.",
+    icon: <PlasticBottleIcon className="w-8 h-8 text-blue-600" />,
+    title: "Giảm thiểu nhựa",
+    description: "Hạn chế rác thải nhựa gây hại cho đại dương.",
     details: {
       importance: "Rác thải nhựa mất hàng trăm năm để phân hủy, vỡ ra thành các hạt vi nhựa độc hại, gây ô nhiễm nghiêm trọng hệ sinh thái biển và ảnh hưởng đến sức khỏe con người.",
       solutions: [
@@ -57,9 +57,9 @@ const educationalContent: EducationalTopic[] = [
   },
   {
     id: 'water-saving',
-    icon: <WaterDropIcon className="w-10 h-10 text-cyan-600" />,
+    icon: <WaterDropIcon className="w-8 h-8 text-cyan-600" />,
     title: "Tiết kiệm nước sạch",
-    description: "Tắt vòi nước, kiểm tra rò rỉ và tái sử dụng nước là những cách đơn giản để bảo vệ nguồn tài nguyên quý giá này.",
+    description: "Tắt vòi nước và kiểm tra rò rỉ thường xuyên.",
     details: {
       importance: "Nước sạch là tài nguyên hữu hạn và thiết yếu cho sự sống. Tiết kiệm nước giúp bảo tồn hệ sinh thái, giảm chi phí năng lượng và đảm bảo an ninh nguồn nước cho tương lai.",
       solutions: [
@@ -78,23 +78,23 @@ const formatTimeAgo = (date: Date): string => {
 
   let interval = seconds / 31536000; // năm
   if (interval > 1) {
-    return `${Math.floor(interval)} năm trước`;
+    return `${Math.floor(interval)} năm`;
   }
   interval = seconds / 2592000; // tháng
   if (interval > 1) {
-    return `${Math.floor(interval)} tháng trước`;
+    return `${Math.floor(interval)} tháng`;
   }
   interval = seconds / 86400; // ngày
   if (interval > 1) {
-    return `${Math.floor(interval)} ngày trước`;
+    return `${Math.floor(interval)} ngày`;
   }
   interval = seconds / 3600; // giờ
   if (interval > 1) {
-    return `${Math.floor(interval)} giờ trước`;
+    return `${Math.floor(interval)} giờ`;
   }
   interval = seconds / 60; // phút
   if (interval > 1) {
-    return `${Math.floor(interval)} phút trước`;
+    return `${Math.floor(interval)} phút`;
   }
   return "Vừa xong";
 };
@@ -102,13 +102,13 @@ const formatTimeAgo = (date: Date): string => {
 const getStatusDetails = (status: ReportStatus) => {
   switch (status) {
     case 'Báo cáo mới':
-      return { label: 'Mới', bgColor: 'bg-red-100', textColor: 'text-red-800' };
+      return { label: 'Mới', bgColor: 'bg-red-50', textColor: 'text-red-700', borderColor: 'border-red-100' };
     case 'Đang xử lý':
-      return { label: 'Đang xử lý', bgColor: 'bg-yellow-100', textColor: 'text-yellow-800' };
+      return { label: 'Đang xử lý', bgColor: 'bg-amber-50', textColor: 'text-amber-700', borderColor: 'border-amber-100' };
     case 'Đã xử lý':
-      return { label: 'Đã xử lý', bgColor: 'bg-green-100', textColor: 'text-green-800' };
+      return { label: 'Đã xử lý', bgColor: 'bg-green-50', textColor: 'text-green-700', borderColor: 'border-green-100' };
     default:
-      return { label: 'Không rõ', bgColor: 'bg-gray-100', textColor: 'text-gray-800' };
+      return { label: 'Không rõ', bgColor: 'bg-gray-50', textColor: 'text-gray-700', borderColor: 'border-gray-100' };
   }
 };
 
@@ -120,96 +120,147 @@ const HomeView: React.FC<HomeViewProps> = ({ reports, onNavigateToMap, onStartNe
   return (
     <div className="w-full">
       {/* Phần Hero */}
-      <div className="mb-8">
+      <div className="relative mb-8 overflow-hidden rounded-b-[2.5rem] bg-white shadow-sm border-b border-gray-100">
         <HeroBanner />
       </div>
       
-      <div className="container mx-auto px-4 sm:px-6 lg:px-8 pb-8">
+      <div className="container mx-auto px-4 sm:px-6 lg:px-8 pb-12">
         {/* Lưới chính */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-          {/* Cột trái: Thống kê và Hành động */}
-          <div className="lg:col-span-2 space-y-8">
-            {/* Thống kê */}
-            <div className="bg-white p-6 rounded-2xl shadow-lg border border-slate-200">
-              <h3 className="text-xl font-bold mb-4 text-slate-800">Thống kê cộng đồng</h3>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="flex items-center bg-blue-50 p-4 rounded-xl">
-                  <ClipboardListIcon className="w-8 h-8 text-blue-500 mr-4" />
-                  <div>
-                    <p className="font-semibold text-blue-800">Tổng số báo cáo</p>
-                    <p className="text-2xl font-bold text-blue-600">{totalReports}</p>
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
+          
+          {/* Cột trái: Nội dung chính */}
+          <div className="lg:col-span-8 space-y-8">
+            
+            {/* Hành động chính (Buttons) */}
+            <section aria-label="Các hành động chính">
+               <h3 className="text-lg font-bold text-slate-800 mb-4 px-1">Truy cập nhanh</h3>
+               <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                 <button onClick={onStartNewReport} className="group flex flex-col items-center justify-center p-6 bg-gradient-to-br from-teal-500 to-teal-600 rounded-2xl shadow-lg shadow-teal-200 hover:shadow-teal-300 transition-all duration-300 hover:-translate-y-1">
+                  <div className="p-3 bg-white/20 rounded-full mb-3 text-white group-hover:scale-110 transition-transform">
+                    <DocumentPlusIcon className="w-8 h-8" />
                   </div>
+                  <span className="font-bold text-white text-sm">Báo cáo mới</span>
+                </button>
+
+                <button onClick={onNavigateToMap} className="group flex flex-col items-center justify-center p-6 bg-white border border-slate-100 rounded-2xl shadow-sm hover:shadow-md transition-all duration-300 hover:-translate-y-1">
+                  <div className="p-3 bg-slate-50 rounded-full mb-3 text-slate-600 group-hover:bg-slate-100 transition-colors">
+                     <MapIcon className="w-8 h-8" />
+                  </div>
+                  <span className="font-semibold text-slate-700 text-sm">Bản đồ Sự cố</span>
+                </button>
+
+                <button onClick={onNavigateToEnvironmentalMap} className="group flex flex-col items-center justify-center p-6 bg-white border border-slate-100 rounded-2xl shadow-sm hover:shadow-md transition-all duration-300 hover:-translate-y-1">
+                  <div className="p-3 bg-indigo-50 rounded-full mb-3 text-indigo-600 group-hover:bg-indigo-100 transition-colors">
+                     <GlobeIcon className="w-8 h-8" />
+                  </div>
+                  <span className="font-semibold text-slate-700 text-sm text-center">Bản đồ Xanh</span>
+                </button>
+
+                <button onClick={onNavigateToSOS} className="group flex flex-col items-center justify-center p-6 bg-red-50 border border-red-100 rounded-2xl shadow-sm hover:shadow-red-100 transition-all duration-300 hover:-translate-y-1">
+                  <div className="p-3 bg-red-100 rounded-full mb-3 text-red-600 group-hover:bg-red-200 transition-colors animate-pulse">
+                     <SOSIcon className="w-8 h-8" />
+                  </div>
+                  <span className="font-bold text-red-700 text-sm">SOS</span>
+                </button>
+               </div>
+            </section>
+
+             {/* Thống kê */}
+            <section className="bg-white rounded-3xl p-6 shadow-sm border border-slate-100">
+              <h3 className="text-lg font-bold text-slate-800 mb-4 flex items-center">
+                 <span className="w-1.5 h-6 bg-teal-500 rounded-full mr-3"></span>
+                 Tổng quan cộng đồng
+              </h3>
+              <div className="grid grid-cols-2 gap-6">
+                <div className="relative overflow-hidden rounded-2xl bg-blue-50 p-6 transition-all hover:bg-blue-100/80">
+                  <div className="relative z-10">
+                    <p className="text-sm font-medium text-blue-800 mb-1">Tổng báo cáo</p>
+                    <p className="text-4xl font-extrabold text-blue-600 tracking-tight">{totalReports}</p>
+                  </div>
+                   <ClipboardListIcon className="absolute -right-4 -bottom-4 w-24 h-24 text-blue-200 opacity-50 rotate-12" />
                 </div>
-                <div className="flex items-center bg-green-50 p-4 rounded-xl">
-                  <CheckBadgeIcon className="w-8 h-8 text-green-500 mr-4"/>
-                  <div>
-                    <p className="font-semibold text-green-800">Sự cố đã xử lý</p>
-                    <p className="text-2xl font-bold text-green-600">{resolvedReports}</p>
+                <div className="relative overflow-hidden rounded-2xl bg-green-50 p-6 transition-all hover:bg-green-100/80">
+                  <div className="relative z-10">
+                    <p className="text-sm font-medium text-green-800 mb-1">Đã xử lý</p>
+                    <p className="text-4xl font-extrabold text-green-600 tracking-tight">{resolvedReports}</p>
                   </div>
+                  <CheckBadgeIcon className="absolute -right-4 -bottom-4 w-24 h-24 text-green-200 opacity-50 rotate-12"/>
                 </div>
               </div>
-            </div>
+            </section>
 
             {/* Báo cáo gần đây */}
-            <div className="bg-white p-6 rounded-2xl shadow-lg border border-slate-200">
-              <h3 className="text-xl font-bold mb-4 text-slate-800">Báo cáo gần đây</h3>
-              <div className="space-y-2">
+            <section className="bg-white rounded-3xl p-6 shadow-sm border border-slate-100">
+              <div className="flex justify-between items-center mb-6">
+                 <h3 className="text-lg font-bold text-slate-800 flex items-center">
+                   <span className="w-1.5 h-6 bg-amber-500 rounded-full mr-3"></span>
+                   Báo cáo mới nhất
+                </h3>
+                <button onClick={onNavigateToMap} className="text-sm font-medium text-teal-600 hover:text-teal-700 hover:underline">Xem tất cả</button>
+              </div>
+              
+              <div className="space-y-4">
                 {reports.slice(0, 4).map((report) => {
                   const statusDetails = getStatusDetails(report.status);
                   return (
                     <button
                       key={report.id}
                       onClick={() => onSelectReportAndNavigateToMap(report)}
-                      className="w-full text-left p-3 rounded-lg hover:bg-slate-50 transition-colors flex items-center justify-between group"
-                      aria-label={`Xem chi tiết báo cáo về ${report.aiAnalysis.issueType}`}
+                      className="w-full text-left p-4 rounded-2xl bg-white border border-slate-100 hover:border-teal-200 hover:shadow-md transition-all duration-200 flex items-start gap-4 group"
                     >
-                      <div className="flex-grow pr-4">
-                        <p className="font-semibold text-slate-800 group-hover:text-teal-700 truncate">{report.aiAnalysis.issueType}</p>
-                        <p className="text-sm text-slate-500">{formatTimeAgo(report.timestamp)}</p>
+                      {/* Media Thumbnail */}
+                      <div className="w-16 h-16 rounded-xl overflow-hidden bg-gray-100 flex-shrink-0 border border-gray-100 relative">
+                         {report.mediaType === 'image' ? (
+                            <img src={report.mediaUrl} alt="" className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" />
+                         ) : (
+                            <video src={report.mediaUrl} className="w-full h-full object-cover" />
+                         )}
+                         {report.mediaType === 'video' && (
+                             <div className="absolute inset-0 flex items-center justify-center bg-black/20">
+                                 <div className="w-6 h-6 rounded-full bg-white/80 flex items-center justify-center">
+                                     <div className="w-0 h-0 border-t-4 border-t-transparent border-l-6 border-l-slate-800 border-b-4 border-b-transparent ml-0.5"></div>
+                                 </div>
+                             </div>
+                         )}
                       </div>
-                      <div className="flex-shrink-0 ml-auto">
-                        <span className={`px-2.5 py-0.5 text-xs font-semibold rounded-full ${statusDetails.bgColor} ${statusDetails.textColor}`}>
-                          {statusDetails.label}
-                        </span>
+
+                      <div className="flex-grow min-w-0">
+                        <div className="flex justify-between items-start">
+                             <h4 className="font-bold text-slate-800 text-sm truncate pr-2 group-hover:text-teal-700 transition-colors">
+                                {report.aiAnalysis.issueType}
+                            </h4>
+                            <span className="text-xs text-slate-400 whitespace-nowrap flex-shrink-0">{formatTimeAgo(report.timestamp)}</span>
+                        </div>
+                        <p className="text-xs text-slate-500 mt-1 line-clamp-1">{report.aiAnalysis.description}</p>
+                        
+                        <div className="mt-2 flex items-center gap-2">
+                             <span className={`px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide rounded-md border ${statusDetails.bgColor} ${statusDetails.textColor} ${statusDetails.borderColor}`}>
+                                {statusDetails.label}
+                            </span>
+                            <span className="text-[10px] text-slate-400 bg-slate-50 px-2 py-0.5 rounded-md border border-slate-100">
+                                {report.aiAnalysis.priority}
+                            </span>
+                        </div>
                       </div>
                     </button>
                   );
                 })}
                  {reports.length === 0 && (
-                    <p className="text-slate-500 text-center py-4">Chưa có báo cáo nào được gửi.</p>
+                    <div className="text-center py-10">
+                        <p className="text-slate-400">Chưa có báo cáo nào.</p>
+                    </div>
                 )}
               </div>
-            </div>
-
-            {/* Hành động */}
-            <div className="bg-white p-6 rounded-2xl shadow-lg border border-slate-200 text-center space-y-4">
-               <h3 className="text-xl font-bold text-slate-800">Hành động ngay</h3>
-               <p className="text-sm text-slate-500 pb-2">Chung tay vì một Đà Nẵng xanh, sạch hơn.</p>
-               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                 <button onClick={onStartNewReport} className="text-lg bg-teal-600 text-white font-bold py-3 px-4 rounded-lg shadow-md hover:bg-teal-700 transition-all duration-300 flex items-center justify-center space-x-2 transform hover:scale-105">
-                  <DocumentPlusIcon className="w-6 h-6" />
-                  <span>Báo cáo mới</span>
-                </button>
-                <button onClick={onNavigateToMap} className="text-lg bg-slate-700 text-white font-bold py-3 px-4 rounded-lg shadow-md hover:bg-slate-800 transition-all duration-300 flex items-center justify-center space-x-2 transform hover:scale-105">
-                  <MapIcon className="w-6 h-6" />
-                  <span>Xem bản đồ</span>
-                </button>
-                <button onClick={onNavigateToEnvironmentalMap} className="md:col-span-2 text-lg bg-indigo-600 text-white font-bold py-3 px-4 rounded-lg shadow-md hover:bg-indigo-700 transition-all duration-300 flex items-center justify-center space-x-2 transform hover:scale-105">
-                  <GlobeIcon className="w-6 h-6" />
-                  <span>Khám phá bản đồ môi trường</span>
-                </button>
-                <button onClick={onNavigateToSOS} className="md:col-span-2 text-lg bg-red-600 text-white font-bold py-3 px-4 rounded-lg shadow-md hover:bg-red-700 transition-all duration-300 flex items-center justify-center space-x-2 transform hover:scale-105 animate-pulse">
-                  <SOSIcon className="w-6 h-6" />
-                  <span>KHẨN CẤP / SOS</span>
-                </button>
-               </div>
-            </div>
+            </section>
           </div>
 
           {/* Cột phải: Giáo dục */}
-          <div className="lg:col-span-1">
-             <div className="bg-white p-6 rounded-2xl shadow-lg border border-slate-200 h-full">
-                <h3 className="text-xl font-bold mb-4 text-slate-800">Nội dung giáo dục</h3>
+          <div className="lg:col-span-4 space-y-8">
+             <section className="bg-gradient-to-b from-white to-slate-50 p-6 rounded-3xl shadow-sm border border-slate-100 h-full">
+                <h3 className="text-lg font-bold mb-6 text-slate-800 flex items-center">
+                    <span className="w-1.5 h-6 bg-indigo-500 rounded-full mr-3"></span>
+                    Kiến thức xanh
+                </h3>
                 <div className="space-y-4">
                     {educationalContent.map((item, index) => (
                       <EducationCard 
@@ -221,7 +272,13 @@ const HomeView: React.FC<HomeViewProps> = ({ reports, onNavigateToMap, onStartNe
                       />
                     ))}
                 </div>
-            </div>
+                
+                <div className="mt-8 p-4 bg-teal-50 rounded-2xl border border-teal-100">
+                    <p className="text-sm text-teal-800 font-medium text-center">
+                        "Hành động nhỏ, ý nghĩa lớn. Hãy cùng nhau bảo vệ Đà Nẵng!"
+                    </p>
+                </div>
+            </section>
           </div>
         </div>
       </div>
