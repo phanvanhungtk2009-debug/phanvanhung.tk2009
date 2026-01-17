@@ -103,6 +103,7 @@ const EnvironmentalMapView: React.FC<EnvironmentalMapViewProps> = ({ reports, po
       const map = L.map(mapContainerRef.current, {
         center: [16.0544, 108.2022], // Trung tâm Đà Nẵng
         zoom: 13,
+        zoomControl: false,
       });
       mapRef.current = map;
 
@@ -127,7 +128,7 @@ const EnvironmentalMapView: React.FC<EnvironmentalMapViewProps> = ({ reports, po
       reportsLayerRef.current.addTo(map);
       poisLayerRef.current.addTo(map);
 
-      L.control.layers(baseLayers, overlayMaps).addTo(map);
+      // L.control.layers(baseLayers, overlayMaps).addTo(map); // Custom UI used instead
     }
 
     return () => {
@@ -214,76 +215,67 @@ const EnvironmentalMapView: React.FC<EnvironmentalMapViewProps> = ({ reports, po
     <div className="absolute inset-0 w-full h-full">
       <div ref={mapContainerRef} className="w-full h-full z-0" />
       
+      {/* Top Left - Home */}
       <div className="absolute top-4 left-4 z-10">
          <button
             onClick={onNavigateHome}
-            className="bg-white/80 backdrop-blur-sm text-gray-700 rounded-full p-4 shadow-lg hover:bg-white transition-all focus:outline-none focus:ring-2 focus:ring-teal-500"
+            className="bg-white/90 backdrop-blur-sm text-gray-700 rounded-full p-3 shadow-lg hover:bg-white transition-all focus:outline-none focus:ring-2 focus:ring-teal-500"
             aria-label="Về trang chủ"
           >
             <HomeIcon className="w-6 h-6" />
           </button>
       </div>
 
-      <div className="absolute bottom-4 left-4 bg-white/80 backdrop-blur-sm p-3 rounded-lg shadow-md z-10 max-w-xs">
-        <h4 className="font-bold text-sm mb-2 text-gray-700">Chú giải</h4>
-        <div className="space-y-3">
-          <div>
-            <p className="text-xs font-semibold text-gray-500 uppercase mb-1">Loại điểm</p>
-             <div className="flex items-center space-x-2">
-                 {/* Render static SVG for legend */}
-                 <div className="w-6 h-6 flex items-center justify-center">
-                    <LifebuoyIcon className="w-5 h-5 text-orange-600" />
-                 </div>
-                 <span className="text-xs font-bold text-orange-700">Điểm Cứu trợ / Nhu yếu phẩm</span>
-             </div>
-          </div>
-          <div>
-            <p className="text-xs font-semibold text-gray-500 uppercase mb-1">Trạng thái báo cáo</p>
-            <div className="space-y-1">
-              {Object.entries(statusColors).map(([status, color]) => (
-                 <div key={status} className="flex items-center space-x-2">
-                   <MapPinIcon className="w-5 h-5 flex-shrink-0" style={{color: color}} />
-                   <span className="text-xs text-gray-600">{status}</span>
-                 </div>
-              ))}
-            </div>
-          </div>
-          <div>
-            <p className="text-xs font-semibold text-gray-500 uppercase mb-1 border-t border-gray-200 pt-2 mt-2">Địa điểm môi trường</p>
-            <div className="space-y-1">
-              {Object.values(poiDetails).map((details) => (
-                <div key={details.name} className="flex items-center space-x-2">
-                  <MapPinIcon className="w-5 h-5 flex-shrink-0" style={{color: details.color}} />
-                  <span className="text-xs text-gray-600">{details.name}</span>
-                </div>
-              ))}
-            </div>
-          </div>
+       {/* Top Center - Title Badge */}
+       <div className="absolute top-4 left-1/2 transform -translate-x-1/2 z-10 w-auto">
+        <div className="bg-white/90 backdrop-blur-sm px-4 py-2 rounded-full shadow-lg border border-gray-100 flex flex-col items-center">
+          <h3 className="text-sm font-bold text-indigo-700 whitespace-nowrap">Bản đồ Môi trường</h3>
         </div>
       </div>
-      
-       <div className="absolute bottom-4 right-4 z-10 flex flex-col items-end space-y-4">
-        {/* Bảng điều khiển bộ lọc */}
-        <div className="bg-white/80 backdrop-blur-sm p-2 rounded-full shadow-lg flex flex-col space-y-1">
+
+       {/* Top Right - Filter Controls (Moved from Bottom Right) */}
+       <div className="absolute top-4 right-4 z-10 flex flex-col items-end space-y-2">
+         {/* Bảng điều khiển bộ lọc */}
+        <div className="bg-white/90 backdrop-blur-sm p-1.5 rounded-2xl shadow-lg flex flex-col space-y-1">
             {filterCategories.map((cat) => (
                 <button
                     key={cat.name}
                     onClick={() => setActiveFilter(cat.filterType)}
-                    className={`flex items-center space-x-2 w-full text-left p-2 rounded-full transition-all duration-200 ${activeFilter === cat.filterType ? 'bg-teal-500 text-white shadow' : 'text-gray-600 hover:bg-gray-200/50'}`}
+                    className={`flex items-center space-x-2 w-full text-left p-2 rounded-xl transition-all duration-200 ${activeFilter === cat.filterType ? 'bg-teal-500 text-white shadow-md' : 'text-gray-600 hover:bg-gray-100'}`}
                     title={cat.name}
                     aria-label={`Lọc theo ${cat.name}`}
                 >
-                    <div className="w-6 text-center">{cat.icon}</div>
+                    <div className="w-6 flex justify-center">{cat.icon}</div>
+                     {/* On mobile, show labels only for active or maybe hide labels to save space? Let's keep icons mostly but small label if active */}
                 </button>
             ))}
         </div>
-        
-        {/* Hộp tiêu đề */}
-        <div className="bg-white/80 backdrop-blur-sm p-4 rounded-xl shadow-lg text-center w-11/12 max-w-md pointer-events-none">
-          <h3 className="text-lg font-bold text-indigo-700">Bản đồ Môi trường Đà Nẵng</h3>
-          <p className="text-sm text-gray-600">Khám phá các báo cáo và điểm quan trọng do cộng đồng đóng góp.</p>
+      </div>
+
+      {/* Bottom Left - Legend */}
+      <div className="absolute bottom-6 left-4 bg-white/90 backdrop-blur-sm p-3 rounded-xl shadow-lg z-10 max-w-[200px] border border-gray-100 hidden sm:block">
+        <h4 className="font-bold text-xs mb-2 text-gray-500 uppercase tracking-wider">Chú giải</h4>
+        <div className="space-y-2">
+          <div>
+             <div className="flex items-center space-x-2 bg-orange-50 p-1 rounded-lg">
+                 <div className="w-5 h-5 flex items-center justify-center">
+                    <LifebuoyIcon className="w-4 h-4 text-orange-600" />
+                 </div>
+                 <span className="text-xs font-bold text-orange-700">Cứu trợ / Nhu yếu phẩm</span>
+             </div>
+          </div>
+          <div className="grid grid-cols-1 gap-1">
+              {Object.entries(statusColors).map(([status, color]) => (
+                 <div key={status} className="flex items-center space-x-2">
+                   <MapPinIcon className="w-4 h-4 flex-shrink-0" style={{color: color}} />
+                   <span className="text-xs text-gray-600 truncate">{status}</span>
+                 </div>
+              ))}
+          </div>
         </div>
       </div>
+      
+      {/* Bottom Right is now clear for Floating AI Assistant */}
     </div>
   );
 };

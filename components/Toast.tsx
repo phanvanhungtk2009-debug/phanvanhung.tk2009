@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { CheckCircleIcon } from './icons/CheckCircleIcon';
 import { XMarkIcon } from './icons/XMarkIcon';
@@ -42,7 +43,7 @@ const Toast: React.FC<ToastProps> = ({ message, type, onDismiss }) => {
 
   return (
     <div
-      className={`relative w-full max-w-sm bg-white rounded-xl shadow-lg flex items-center p-4 overflow-hidden border border-gray-200 transition-all duration-300 transform ${isExiting ? 'opacity-0 translate-x-full' : 'opacity-100 translate-x-0'}`}
+      className={`relative w-full max-w-sm bg-white rounded-xl shadow-lg flex items-center p-4 overflow-hidden border border-gray-200 transition-all duration-300 transform pointer-events-auto ${isExiting ? 'opacity-0 translate-x-full' : 'opacity-100 translate-x-0'}`}
       role="alert"
       style={{ animation: 'toast-in 0.3s ease-out forwards' }}
     >

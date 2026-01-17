@@ -1,3 +1,4 @@
+
 import React, { useEffect, useRef, useMemo, useState } from 'react';
 import * as L from 'leaflet';
 // FIX: Import `AIAnalysis` type to resolve reference errors.
@@ -118,6 +119,7 @@ const MainMapView: React.FC<MainMapViewProps> = ({ reports, onSelectReport, onNa
       const map = L.map(mapContainerRef.current, {
         center: initialViewState.center, // Sử dụng state ban đầu từ props
         zoom: initialViewState.zoom,     // Sử dụng state ban đầu từ props
+        zoomControl: false, // Tắt zoom control mặc định để đặt lại vị trí nếu cần
       });
 
       // Lắng nghe các chuyển động của bản đồ để lưu state
@@ -261,7 +263,7 @@ const MainMapView: React.FC<MainMapViewProps> = ({ reports, onSelectReport, onNa
       </div>
 
 
-      <div className="absolute bottom-4 left-4 bg-white/80 backdrop-blur-sm p-3 rounded-lg shadow-md z-10">
+      <div className="absolute bottom-4 left-4 bg-white/80 backdrop-blur-sm p-3 rounded-lg shadow-md z-10 hidden sm:block">
         <h4 className="font-bold text-sm mb-2 text-gray-700">Chú giải</h4>
         <div className="space-y-1">
           <div className="flex items-center space-x-2">
@@ -278,13 +280,17 @@ const MainMapView: React.FC<MainMapViewProps> = ({ reports, onSelectReport, onNa
           </div>
         </div>
       </div>
-       <button
-          onClick={onStartNewReport}
-          className="absolute bottom-6 right-6 bg-teal-600 text-white rounded-full p-4 shadow-lg hover:bg-teal-700 transition-transform transform hover:scale-110 focus:outline-none focus:ring-2 focus:ring-teal-500 focus:ring-offset-2 z-10"
-          aria-label="Báo cáo sự cố mới"
-        >
-          <AddIcon className="w-8 h-8" />
-        </button>
+      
+       {/* Nút thêm báo cáo - Di chuyển ra giữa để tránh xung đột với nút AI ở góc phải */}
+       <div className="absolute bottom-6 left-1/2 transform -translate-x-1/2 z-10">
+           <button
+              onClick={onStartNewReport}
+              className="bg-teal-600 text-white rounded-full p-5 shadow-2xl hover:bg-teal-700 transition-transform transform hover:scale-110 focus:outline-none focus:ring-4 focus:ring-teal-500/50 flex items-center justify-center"
+              aria-label="Báo cáo sự cố mới"
+            >
+              <AddIcon className="w-8 h-8" />
+            </button>
+       </div>
     </div>
   );
 };
