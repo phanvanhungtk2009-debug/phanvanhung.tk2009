@@ -1,8 +1,8 @@
 
 import React, { useState, useCallback, useEffect } from 'react';
 import * as L from 'leaflet';
-// FIX: Import `askAIAboutEnvironment` to resolve reference error in `handleChatSubmit`.
 import { analyzeEnvironmentalImage, askAIAboutEnvironment } from './services/geminiService';
+import { saveOfflineReport, getOfflineReports, deleteOfflineReport, compressImage } from './services/offlineService';
 import { EnvironmentalReport, AIAnalysis, ReportStatus, ChatMessage, ToastMessage, EducationalTopic, EnvironmentalPOI } from './types';
 import MainMapView from './components/MainMapView';
 import ReportForm from './components/ReportForm';
@@ -17,8 +17,10 @@ import EducationDetailModal from './components/EducationDetailModal';
 import EnvironmentalMapView from './components/EnvironmentalMapView';
 import SOSView from './components/SOSView';
 import { SOSIcon } from './components/icons/SOSIcon';
+import { CloudIcon } from './components/icons/CloudIcon'; // Assuming you might have this or use a generic icon
 
-// Dữ liệu giả lập để mô phỏng các báo cáo đã có trong cơ sở dữ liệu
+// Dữ liệu mẫu tĩnh (Static Data) - Chỉ dùng để hiển thị khi người dùng chưa nhập gì
+// Đã xóa hàm tự động random dữ liệu để đảm bảo tính nghiêm túc.
 const initialReports: EnvironmentalReport[] = [
   {
     id: '1',
@@ -128,40 +130,6 @@ const environmentalPOIs: EnvironmentalPOI[] = [
   },
 ];
 
-
-// Hàm tạo báo cáo giả để mô phỏng dữ liệu mới
-const createMockReport = (): EnvironmentalReport => {
-  const types: AIAnalysis['issueType'][] = ['Xả rác không đúng nơi quy định', 'Ngập lụt', 'Sạt lở đất', 'Cần chăm sóc cây xanh'];
-  const statuses: ReportStatus[] = ['Báo cáo mới', 'Đang xử lý', 'Đã xử lý'];
-  const priorities: AIAnalysis['priority'][] = ['Cao', 'Trung bình', 'Thấp'];
-  
-  const randomType = types[Math.floor(Math.random() * types.length)];
-  const randomPriority = priorities[Math.floor(Math.random() * priorities.length)];
-
-  // Trung tâm Đà Nẵng: 16.0544, 108.2022. Tạo các điểm ngẫu nhiên xung quanh.
-  const lat = 16.0544 + (Math.random() - 0.5) * 0.1; // ~ +/- 5.5 km
-  const lon = 108.2022 + (Math.random() - 0.5) * 0.1;
-
-  return {
-    id: new Date().toISOString() + Math.random(),
-    mediaUrl: 'https://images.unsplash.com/photo-1567693122312-de549acb2a58?q=80&w=2070&auto=format&fit=crop', // Ảnh rác chung
-    mediaType: 'image',
-    latitude: lat,
-    longitude: lon,
-    userDescription: 'Báo cáo mới được tạo tự động.',
-    aiAnalysis: {
-      issueType: randomType,
-      description: `Một sự cố về '${randomType}' đã được phát hiện tại địa điểm này.`,
-      priority: randomPriority,
-      solution: 'Giải pháp tự động tạo cho báo cáo mô phỏng.',
-      isIssuePresent: true,
-    },
-    status: 'Báo cáo mới', // Báo cáo mới luôn có trạng thái này
-    timestamp: new Date(),
-  };
-};
-
-
 const App: React.FC = () => {
   const [reports, setReports] = useState<EnvironmentalReport[]>(() => {
     try {
@@ -208,6 +176,70 @@ const App: React.FC = () => {
   const [isChatLoading, setIsChatLoading] = useState<boolean>(false);
   const [isChatOpen, setIsChatOpen] = useState(false);
   const [userLocation, setUserLocation] = useState<{ latitude: number; longitude: number } | null>(null);
+  
+  // Offline Mode State
+  const [isOnline, setIsOnline] = useState<boolean>(navigator.onLine);
+  const [pendingReportsCount, setPendingReportsCount] = useState<number>(0);
+
+  // Effect to handle online/offline status and sync
+  useEffect(() => {
+    const handleOnline = () => {
+      setIsOnline(true);
+      addToast('Đã kết nối lại Internet. Đang đồng bộ dữ liệu...', 'success');
+      syncOfflineReports();
+    };
+
+    const handleOffline = () => {
+      setIsOnline(false);
+      addToast('Mất kết nối Internet. Chế độ Offline đã được kích hoạt.', 'error');
+    };
+
+    window.addEventListener('online', handleOnline);
+    window.addEventListener('offline', handleOffline);
+
+    // Initial check for pending reports
+    getOfflineReports().then(reports => {
+      setPendingReportsCount(reports.length);
+      if (navigator.onLine && reports.length > 0) {
+        syncOfflineReports();
+      }
+    });
+
+    return () => {
+      window.removeEventListener('online', handleOnline);
+      window.removeEventListener('offline', handleOffline);
+    };
+  }, []);
+
+  const syncOfflineReports = async () => {
+    try {
+      const offlineReports = await getOfflineReports();
+      if (offlineReports.length === 0) return;
+
+      // Simulate sending to server by adding to local state
+      // In a real app, you would POST to an API here
+      setReports(prev => [...offlineReports, ...prev]);
+      
+      // Delete from IndexedDB after successful sync
+      for (const report of offlineReports) {
+        await deleteOfflineReport(report.id);
+      }
+
+      setPendingReportsCount(0);
+      addToast(`Đã đồng bộ ${offlineReports.length} báo cáo offline thành công!`, 'success');
+      
+      // Trigger background sync registration if supported (optional, for robustness)
+      if ('serviceWorker' in navigator && 'SyncManager' in window) {
+          const registration = await navigator.serviceWorker.ready;
+          // @ts-ignore
+          registration.sync.register('sync-reports');
+      }
+
+    } catch (error) {
+      console.error("Sync failed:", error);
+      addToast('Đồng bộ thất bại. Vui lòng thử lại sau.', 'error');
+    }
+  };
   
   // Effect để tải và lưu báo cáo vào localStorage
   useEffect(() => {
@@ -261,17 +293,7 @@ const App: React.FC = () => {
     setToasts(prevToasts => [...prevToasts, { id, message, type }]);
   }, []);
 
-  // Effect để tự động làm mới dữ liệu báo cáo
-  useEffect(() => {
-    const intervalId = setInterval(() => {
-      console.log("Tự động làm mới dữ liệu báo cáo...");
-      const newReport = createMockReport();
-      setReports(prevReports => [newReport, ...prevReports]);
-      addToast('Đã nhận báo cáo mới!');
-    }, 30000); // 30 giây
-
-    return () => clearInterval(intervalId); // Dọn dẹp khi component unmount
-  }, [addToast]);
+  // ĐÃ XÓA: useEffect tạo báo cáo giả tự động
 
   const removeToast = useCallback((id: number) => {
     setToasts(prevToasts => prevToasts.filter(toast => toast.id !== id));
@@ -292,34 +314,48 @@ const App: React.FC = () => {
     setError(null);
     
     try {
-      const reader = new FileReader();
-      reader.readAsDataURL(mediaFile);
-      reader.onload = async () => {
-        const newReport: EnvironmentalReport = {
-          id: new Date().toISOString(),
-          mediaUrl: reader.result as string,
-          mediaType: mediaFile.type.startsWith('video') ? 'video' : 'image',
-          latitude: coords.latitude,
-          longitude: coords.longitude,
-          userDescription,
-          aiAnalysis, // Sử dụng trực tiếp kết quả phân tích
-          status: 'Báo cáo mới',
-          timestamp: new Date(),
-        };
+      // Compress image first (for both online and offline)
+      const compressedMediaUrl = await compressImage(mediaFile);
+      
+      const newReport: EnvironmentalReport = {
+        id: new Date().toISOString(),
+        mediaUrl: compressedMediaUrl,
+        mediaType: mediaFile.type.startsWith('video') ? 'video' : 'image',
+        latitude: coords.latitude,
+        longitude: coords.longitude,
+        userDescription,
+        aiAnalysis, // Sử dụng trực tiếp kết quả phân tích
+        status: 'Báo cáo mới',
+        timestamp: new Date(),
+      };
+
+      if (!isOnline) {
+        // Save to IndexedDB if offline
+        await saveOfflineReport(newReport);
+        setPendingReportsCount(prev => prev + 1);
+        addToast('Đã lưu báo cáo vào bộ nhớ tạm. Sẽ tự động gửi khi có mạng.', 'success');
         
+        // Register background sync if supported
+        if ('serviceWorker' in navigator && 'SyncManager' in window) {
+            const registration = await navigator.serviceWorker.ready;
+            // @ts-ignore
+            registration.sync.register('sync-reports');
+        }
+      } else {
+        // Online: Add directly to state
         setReports(prevReports => [newReport, ...prevReports]);
         
         // Tặng điểm cho báo cáo mới
         const pointsAwarded = 10;
         setUserPoints(prevPoints => prevPoints + pointsAwarded);
         setLastAwardedPoints(pointsAwarded);
-
-        setView('thankYou');
-        setIsLoading(false);
-      };
-       reader.onerror = () => {
-         throw new Error('Không thể đọc tệp media.');
+        
+        addToast('Báo cáo đã được gửi thành công!', 'success');
       }
+      
+      setView('thankYou');
+      setIsLoading(false);
+
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Đã xảy ra lỗi không xác định.';
       setError(`Lỗi khi tạo báo cáo: ${errorMessage}`);
@@ -375,6 +411,20 @@ const App: React.FC = () => {
     }
   };
 
+  const handleClearChat = () => {
+    setChatMessages([
+      { 
+        role: 'model', 
+        content: 'Xin chào! Tôi là Trợ lý AI của DA NANG GREEN. Tôi có thể giúp gì cho bạn hôm nay?',
+        suggestions: [
+          "Cách phân loại rác đúng cách?",
+          "Báo cáo một điểm xả rác trái phép.",
+          "Một số mẹo tiết kiệm nước là gì?",
+        ]
+      }
+    ]);
+  };
+
   const handleNavigateFromThankYou = (destination: 'home' | 'map') => {
     setView(destination);
     setLastAwardedPoints(0); // Đặt lại điểm để thông báo không hiển thị lại
@@ -426,6 +476,7 @@ const App: React.FC = () => {
                   onCancel={() => { setView(previousView); setError(null); }}
                   isLoading={isLoading}
                   error={error}
+                  isOnline={isOnline}
                 />;
       case 'thankYou':
         return <ThankYouView
@@ -470,6 +521,19 @@ const App: React.FC = () => {
           </div>
           
            <div className="flex items-center space-x-3 sm:space-x-4">
+              {/* Offline Indicator */}
+              {!isOnline && (
+                <div className="flex items-center space-x-1 bg-amber-100 text-amber-800 px-3 py-1.5 rounded-full text-xs font-bold animate-pulse">
+                  <CloudIcon className="w-4 h-4" />
+                  <span className="hidden sm:inline">Offline ({pendingReportsCount})</span>
+                </div>
+              )}
+              {isOnline && pendingReportsCount > 0 && (
+                 <div className="flex items-center space-x-1 bg-blue-100 text-blue-800 px-3 py-1.5 rounded-full text-xs font-bold">
+                  <CloudIcon className="w-4 h-4 animate-bounce" />
+                  <span className="hidden sm:inline">Đang đồng bộ...</span>
+                </div>
+              )}
               <button
                 onClick={() => setView('sos')}
                 className="bg-red-600 text-white px-4 py-1.5 rounded-full text-sm font-bold flex items-center space-x-2 animate-pulse hover:bg-red-700 transition-all shadow-lg hover:shadow-red-200 transform hover:scale-105"
@@ -513,6 +577,7 @@ const App: React.FC = () => {
         messages={chatMessages}
         isLoading={isChatLoading}
         onSubmit={handleChatSubmit}
+        onClearChat={handleClearChat}
       />
     </div>
   );

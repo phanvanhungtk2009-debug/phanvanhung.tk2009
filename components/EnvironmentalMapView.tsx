@@ -82,6 +82,7 @@ const EnvironmentalMapView: React.FC<EnvironmentalMapViewProps> = ({ reports, po
   const mapRef = useRef<L.Map | null>(null);
   const reportsLayerRef = useRef<L.LayerGroup | null>(null);
   const poisLayerRef = useRef<L.LayerGroup | null>(null);
+  const sovereigntyLayerRef = useRef<L.LayerGroup | null>(null);
 
   const [activeFilter, setActiveFilter] = useState<string>('Tất cả');
 
@@ -107,9 +108,10 @@ const EnvironmentalMapView: React.FC<EnvironmentalMapViewProps> = ({ reports, po
       });
       mapRef.current = map;
 
+      // SỬ DỤNG CartoDB Voyager để có tên địa danh trung lập và chính xác hơn cho Hoàng Sa/Trường Sa
       const baseLayers = {
-        "Bản đồ mặc định": L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-          attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+        "Bản đồ mặc định": L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
+          attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>',
         }),
         "Bản đồ vệ tinh": L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
           attribution: 'Tiles &copy; Esri',
@@ -118,6 +120,7 @@ const EnvironmentalMapView: React.FC<EnvironmentalMapViewProps> = ({ reports, po
 
       reportsLayerRef.current = L.layerGroup();
       poisLayerRef.current = L.layerGroup();
+      sovereigntyLayerRef.current = L.layerGroup();
       
       const overlayMaps = {
         "Báo cáo của người dân": reportsLayerRef.current,
@@ -127,6 +130,28 @@ const EnvironmentalMapView: React.FC<EnvironmentalMapViewProps> = ({ reports, po
       baseLayers["Bản đồ mặc định"].addTo(map);
       reportsLayerRef.current.addTo(map);
       poisLayerRef.current.addTo(map);
+      sovereigntyLayerRef.current.addTo(map);
+
+      // --- THÊM NHÃN CHỦ QUYỀN VIỆT NAM ---
+      const sovereigntyLabels = [
+        { lat: 16.4, lng: 112.0, name: "Quần đảo Hoàng Sa (Việt Nam)" },
+        { lat: 10.0, lng: 114.0, name: "Quần đảo Trường Sa (Việt Nam)" }
+      ];
+
+      sovereigntyLabels.forEach(label => {
+          const icon = L.divIcon({
+              html: `<div class="flex flex-col items-center justify-center">
+                        <div class="text-[10px] sm:text-xs font-bold text-red-700 uppercase tracking-widest text-center drop-shadow-sm whitespace-nowrap bg-white/60 backdrop-blur-[1px] px-2 py-0.5 rounded border border-white/20">
+                           ${label.name}
+                        </div>
+                        <div class="w-1.5 h-1.5 bg-red-600 rounded-full mt-1 shadow-sm"></div>
+                     </div>`,
+              className: 'bg-transparent',
+              iconSize: [200, 40],
+              iconAnchor: [100, 20]
+          });
+          L.marker([label.lat, label.lng], { icon, interactive: false, zIndexOffset: -500 }).addTo(sovereigntyLayerRef.current!);
+      });
 
       // L.control.layers(baseLayers, overlayMaps).addTo(map); // Custom UI used instead
     }

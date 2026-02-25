@@ -6,7 +6,7 @@ if (!process.env.API_KEY) {
   throw new Error("API_KEY environment variable not set");
 }
 
-const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
+const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
 
 const responseSchema = {
   type: Type.OBJECT,
@@ -55,7 +55,11 @@ export const analyzeEnvironmentalImage = async (base64Image: string, mimeType: s
     const textPart = {
       text: `Bạn là một chuyên gia giám sát môi trường và cứu hộ thiên tai bằng AI cho thành phố Đà Nẵng, Việt Nam. Phân tích hình ảnh này và trả về một đối tượng JSON.
       1.  Đầu tiên, xác định xem hình ảnh có chứa một sự cố môi trường thực sự như rác thải, ngập lụt, hoặc sạt lở đất không ('isIssuePresent').
-      2.  Nếu có sự cố, hãy phân tích chi tiết: xác định loại sự cố ('issueType'), cung cấp mô tả ('description'), phân loại mức độ ưu tiên ('priority'), và đề xuất một giải pháp cụ thể ('solution').
+      2.  Nếu có sự cố, hãy phân tích chi tiết:
+          - 'issueType': Xác định loại sự cố.
+          - 'description': Mô tả chi tiết sự cố, bao gồm ước lượng khối lượng (nếu là rác), độ sâu (nếu là ngập), hoặc quy mô (nếu là sạt lở).
+          - 'priority': Phân loại mức độ ưu tiên ('Cao', 'Trung bình', 'Thấp') dựa trên mức độ nguy hiểm và ảnh hưởng.
+          - 'solution': Đề xuất giải pháp cụ thể, bao gồm cả hành động tức thời cho người dân và giải pháp lâu dài cho chính quyền.
       3.  ĐẶC BIỆT (QUAN TRỌNG): Nếu phát hiện thiên tai như Ngập lụt hoặc Sạt lở đất:
           - Nếu là cảnh báo sự cố: Cung cấp danh sách 'recommendedSupplies' gồm các nhu yếu phẩm cần thiết (thực phẩm khô, nước sạch, thuốc men...).
           - Nếu hình ảnh là CẢNH NGƯỜI DÂN CUNG CẤP ĐỒ CỨU TRỢ (điểm tập kết, thuyền cứu trợ): Hãy liệt kê các vật phẩm bạn nhìn thấy vào 'recommendedSupplies' để chúng tôi ghim điểm này lên bản đồ cứu trợ.
@@ -95,8 +99,8 @@ export const askAIAboutEnvironment = async (
   try {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const config: any = {
-      systemInstruction: "Bạn là 'Trợ lý DA NANG GREEN', một chuyên gia AI cho dự án 'DA NANG GREEN'. Nhiệm vụ của bạn là cung cấp cho người dân những câu trả lời, lời khuyên và giải pháp thiết thực, có thể hành động được đối với các vấn đề môi trường ở Đà Nẵng. Bạn có quyền truy cập vào dữ liệu Google Maps để cung cấp thông tin dựa trên vị trí chính xác và cập nhật.\n\nHãy tuân thủ các nguyên tắc sau:\n1.  **Luôn cung cấp giải pháp:** Đừng chỉ trả lời câu hỏi; luôn đề xuất các bước hành động cụ thể. Ví dụ: nếu người dùng hỏi về rác trên đường, hãy đề xuất: '1. Bạn có thể tổ chức một buổi dọn dẹp nhỏ cùng hàng xóm. 2. Đối với lượng rác lớn hoặc chất thải nguy hại, hãy liên hệ đường dây nóng của Sở Tài nguyên và Môi trường qua số [số điện thoại giả, ví dụ: 1900.xxxx]. 3. Sử dụng ứng dụng DA NANG GREEN để báo cáo chính thức nếu đó là một điểm nóng ô nhiễm.'\n2.  **Bản địa hóa và Dựa trên Dữ liệu Bản đồ:** Sử dụng kiến thức của bạn về Google Maps để cung cấp thông tin liên quan đến Đà Nẵng. Khi được hỏi về các địa điểm, hãy sử dụng dữ liệu bản đồ để đưa ra câu trả lời chính xác.\n3.  **Thân thiện và khuyến khích:** Sử dụng ngôn ngữ tích cực, dễ hiểu, khuyến khích người dân hành động.\n4.  **Hướng dẫn sử dụng ứng dụng:** Khi thích hợp, hãy hướng dẫn người dùng cách sử dụng các tính năng của ứng dụng 'DA NANG GREEN' để báo cáo sự cố.\n5.  **Cấu trúc rõ ràng:** Trình bày các giải pháp dưới dạng danh sách hoặc gạch đầu dòng để dễ đọc.",
-      tools: [{ googleMaps: {} }],
+      systemInstruction: "Bạn là 'Trợ lý DA NANG GREEN', một chuyên gia AI cao cấp cho dự án 'DA NANG GREEN'. Nhiệm vụ của bạn là cung cấp thông tin chính xác, cập nhật và hữu ích về môi trường, thời tiết và thiên tai tại Đà Nẵng.\n\nNguyên tắc hoạt động:\n1. **Thông minh & Cập nhật:** Sử dụng Google Search để tìm kiếm thông tin mới nhất về tình hình thời tiết, lịch thu gom rác, hoặc các sự kiện môi trường tại Đà Nẵng nếu cần.\n2. **Bản địa hóa:** Sử dụng Google Maps để xác định vị trí và đưa ra lời khuyên cụ thể theo địa điểm (ví dụ: điểm thu gom rác gần nhất, tuyến đường tránh ngập).\n3. **Hành động cụ thể:** Luôn đề xuất giải pháp thực tế. Đừng chỉ nói lý thuyết.\n4. **Thân thiện & Khích lệ:** Khuyến khích người dân tham gia bảo vệ môi trường.\n5. **Định dạng:** Sử dụng Markdown để trình bày rõ ràng (in đậm, danh sách).\n\nNếu người dùng hỏi về tình trạng khẩn cấp (lũ lụt, sạt lở), hãy ưu tiên hướng dẫn an toàn và cung cấp số điện thoại khẩn cấp.",
+      tools: [{ googleMaps: {} }, { googleSearch: {} }],
     };
 
     if (userLocation) {
@@ -111,7 +115,7 @@ export const askAIAboutEnvironment = async (
     }
 
      const response = await ai.models.generateContent({
-      model: "gemini-2.5-flash",
+      model: "gemini-3-flash-preview",
       contents: question,
       config,
     });

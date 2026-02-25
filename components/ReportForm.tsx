@@ -14,9 +14,10 @@ interface ReportFormProps {
   onCancel: () => void;
   isLoading: boolean;
   error: string | null;
+  isOnline: boolean;
 }
 
-const ReportForm: React.FC<ReportFormProps> = ({ onSubmit, onCancel, isLoading, error }) => {
+const ReportForm: React.FC<ReportFormProps> = ({ onSubmit, onCancel, isLoading, error, isOnline }) => {
   const [mediaFile, setMediaFile] = useState<File | null>(null);
   const [mediaUrl, setMediaUrl] = useState<string | null>(null);
   const [mediaType, setMediaType] = useState<'image' | 'video' | null>(null);
@@ -95,6 +96,27 @@ const ReportForm: React.FC<ReportFormProps> = ({ onSubmit, onCancel, isLoading, 
       setAiAnalysis(null);
       setAnalysisMessage(null);
 
+      // Nếu offline, bỏ qua phân tích AI và cho phép nhập thủ công (hoặc giả lập)
+      // Tuy nhiên, yêu cầu là "Ảnh và dữ liệu... được lưu tạm thời".
+      // Nếu không có mạng, không thể gọi Gemini API.
+      // Chúng ta sẽ cho phép người dùng nhập mô tả và lưu lại, AI Analysis sẽ là null hoặc placeholder.
+      // Nhưng ReportForm yêu cầu aiAnalysis để submit.
+      // Ta sẽ xử lý logic này: Nếu offline, tạo một aiAnalysis giả định hoặc cho phép null.
+      // Nhưng để đơn giản và tuân thủ type, ta sẽ mock AI response nếu offline.
+      
+      if (!isOnline) {
+          // Mock AI Analysis for Offline Mode
+          const mockAnalysis: AIAnalysis = {
+              isIssuePresent: true,
+              issueType: "Đang chờ phân tích",
+              description: "Báo cáo được tạo khi offline. AI sẽ phân tích lại sau (nếu cần).",
+              priority: "Trung bình",
+              solution: "Đang chờ xử lý",
+          };
+          setAiAnalysis(mockAnalysis);
+          return;
+      }
+
       try {
         let base64String: string;
         let mimeType: string;
@@ -152,7 +174,7 @@ const ReportForm: React.FC<ReportFormProps> = ({ onSubmit, onCancel, isLoading, 
     
     handleMediaAnalysis();
 
-  }, [mediaFile]);
+  }, [mediaFile, isOnline]);
 
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -167,8 +189,17 @@ const ReportForm: React.FC<ReportFormProps> = ({ onSubmit, onCancel, isLoading, 
       <div className="bg-white rounded-3xl shadow-xl border border-slate-100 overflow-hidden">
         {/* Header */}
         <div className="bg-slate-50 border-b border-slate-100 p-6 sm:p-8">
-          <h2 className="text-2xl sm:text-3xl font-extrabold text-slate-800 tracking-tight">Gửi báo cáo sự cố</h2>
-          <p className="text-slate-500 mt-2">Đóng góp của bạn giúp Đà Nẵng xanh và sạch hơn. AI sẽ hỗ trợ bạn phân tích dữ liệu.</p>
+          <div className="flex justify-between items-start">
+            <div>
+                <h2 className="text-2xl sm:text-3xl font-extrabold text-slate-800 tracking-tight">Gửi báo cáo sự cố</h2>
+                <p className="text-slate-500 mt-2">Đóng góp của bạn giúp Đà Nẵng xanh và sạch hơn.</p>
+            </div>
+            {!isOnline && (
+                <div className="bg-amber-100 text-amber-800 px-3 py-1 rounded-lg text-xs font-bold border border-amber-200">
+                    Chế độ Offline
+                </div>
+            )}
+          </div>
         </div>
 
         <form onSubmit={handleSubmit} className="p-6 sm:p-8 space-y-8">
@@ -201,10 +232,12 @@ const ReportForm: React.FC<ReportFormProps> = ({ onSubmit, onCancel, isLoading, 
                 
                 {aiAnalysis && (
                     <div className="space-y-4 animate-fade-in-up">
-                         <div className="flex items-center gap-3 text-green-800 bg-green-50 p-4 rounded-xl border border-green-100">
-                            <CheckCircleIcon className="w-6 h-6 flex-shrink-0 text-green-600" />
+                         <div className={`flex items-center gap-3 p-4 rounded-xl border ${isOnline ? 'text-green-800 bg-green-50 border-green-100' : 'text-amber-800 bg-amber-50 border-amber-100'}`}>
+                            {isOnline ? <CheckCircleIcon className="w-6 h-6 flex-shrink-0 text-green-600" /> : <div className="w-6 h-6 flex-shrink-0 text-amber-600 font-bold">!</div>}
                             <div>
-                                <p className="font-bold text-green-900">Xác thực thành công</p>
+                                <p className={`font-bold ${isOnline ? 'text-green-900' : 'text-amber-900'}`}>
+                                    {isOnline ? 'Xác thực thành công' : 'Đang ở chế độ Offline - AI tạm thời không khả dụng'}
+                                </p>
                             </div>
                         </div>
                         <ReportCard analysis={aiAnalysis} />
@@ -283,9 +316,9 @@ const ReportForm: React.FC<ReportFormProps> = ({ onSubmit, onCancel, isLoading, 
               <button
                 type="submit"
                 disabled={!mediaFile || !coords || !aiAnalysis || isLoading}
-                className="px-8 py-3 bg-gradient-to-r from-teal-500 to-teal-600 text-white font-bold rounded-xl shadow-lg shadow-teal-200 hover:shadow-teal-300 hover:-translate-y-0.5 transition-all disabled:bg-none disabled:bg-slate-300 disabled:shadow-none disabled:cursor-not-allowed disabled:transform-none"
+                className={`px-8 py-3 font-bold rounded-xl shadow-lg transition-all disabled:bg-none disabled:bg-slate-300 disabled:shadow-none disabled:cursor-not-allowed disabled:transform-none ${isOnline ? 'bg-gradient-to-r from-teal-500 to-teal-600 text-white shadow-teal-200 hover:shadow-teal-300 hover:-translate-y-0.5' : 'bg-amber-500 text-white shadow-amber-200 hover:shadow-amber-300'}`}
               >
-                {isLoading ? 'Đang gửi...' : 'Gửi Báo Cáo'}
+                {isLoading ? 'Đang xử lý...' : (isOnline ? 'Gửi Báo Cáo' : 'Lưu Offline')}
               </button>
             </div>
         </form>
