@@ -16,83 +16,14 @@ import { TrophyIcon } from './components/icons/TrophyIcon';
 import EducationDetailModal from './components/EducationDetailModal';
 import EnvironmentalMapView from './components/EnvironmentalMapView';
 import SOSView from './components/SOSView';
+import OfflineReportsModal from './components/OfflineReportsModal';
+import LoginView from './components/LoginView';
+import DashboardView from './components/DashboardView';
 import { SOSIcon } from './components/icons/SOSIcon';
-import { CloudIcon } from './components/icons/CloudIcon'; // Assuming you might have this or use a generic icon
+import { CloudIcon } from './components/icons/CloudIcon';
 
 // Dữ liệu mẫu tĩnh (Static Data) - Chỉ dùng để hiển thị khi người dùng chưa nhập gì
-// Đã xóa hàm tự động random dữ liệu để đảm bảo tính nghiêm túc.
-const initialReports: EnvironmentalReport[] = [
-  {
-    id: '1',
-    mediaUrl: 'https://images.unsplash.com/photo-1598692294285-649a6f18638b?q=80&w=2070&auto=format&fit=crop',
-    mediaType: 'image',
-    latitude: 16.0748,
-    longitude: 108.2236,
-    userDescription: 'Rác thải sinh hoạt vứt bừa bãi gần Cầu Rồng.',
-    aiAnalysis: {
-      issueType: 'Xả rác không đúng nơi quy định',
-      description: 'Một lượng lớn rác thải sinh hoạt, bao gồm túi ni lông và hộp, đã tích tụ ở khu vực công cộng.',
-      priority: 'Cao',
-      solution: 'Cần đội vệ sinh môi trường đến thu gom và lắp đặt thêm thùng rác tại khu vực này.',
-      isIssuePresent: true,
-    },
-    status: 'Báo cáo mới',
-    timestamp: new Date(Date.now() - 86400000 * 2), // 2 ngày trước
-  },
-  {
-    id: '4',
-    mediaUrl: 'https://storage.googleapis.com/static-ai-apps/media/Da_Nang_Flooding.mp4',
-    mediaType: 'video',
-    latitude: 16.0601,
-    longitude: 108.2225,
-    userDescription: "Đường ngập sâu sau trận mưa lớn, xe cộ không đi lại được.",
-    aiAnalysis: {
-      issueType: 'Ngập lụt',
-      description: 'Khu vực đường Nguyễn Văn Linh bị ngập sâu, cản trở giao thông nghiêm trọng.',
-      priority: 'Cao',
-      solution: 'Cảnh báo người dân, điều tiết giao thông và huy động đội thoát nước khơi thông hệ thống cống.',
-      isIssuePresent: true,
-      recommendedSupplies: ["Nước sạch đóng chai", "Thực phẩm khô (lương khô, mì gói)", "Áo phao", "Đèn pin"]
-    },
-    status: 'Đang xử lý',
-    timestamp: new Date(Date.now() - 86400000), // 1 ngày trước
-  },
-   {
-    id: '3',
-    mediaUrl: 'https://images.unsplash.com/photo-1523348835941-8d5a77ecaf2a?q=80&w=1974&auto=format&fit=crop',
-    mediaType: 'image',
-    latitude: 16.0544,
-    longitude: 108.2022,
-    userDescription: 'Cây cối ở đây có vẻ đã được cắt tỉa gọn gàng.',
-    aiAnalysis: {
-      issueType: 'Không có sự cố',
-      description: 'Cây xanh đã được dọn dẹp và không còn gây cản trở.',
-      priority: 'Thấp',
-      solution: 'Không cần hành động thêm, cây xanh đã được chăm sóc.',
-      isIssuePresent: false,
-    },
-    status: 'Đã xử lý',
-    timestamp: new Date(Date.now() - 86400000 * 5), // 5 ngày trước
-  },
-  {
-    id: '5',
-    mediaUrl: 'https://storage.googleapis.com/static-ai-apps/media/Da_Nang_Landslide.mp4',
-    mediaType: 'video',
-    latitude: 16.115, // Bán đảo Sơn Trà
-    longitude: 108.27,
-    userDescription: 'Sạt lở đất đá trên đường lên Sơn Trà, rất nguy hiểm.',
-    aiAnalysis: {
-      issueType: 'Sạt lở đất',
-      description: 'Một lượng lớn đất đá đã sạt lở xuống lòng đường, chặn một phần lối đi và có nguy cơ tiếp tục sạt lở.',
-      priority: 'Cao',
-      solution: 'Cần phong tỏa khu vực, đặt biển báo nguy hiểm và cử đội công trình đến khắc phục ngay lập tức.',
-      isIssuePresent: true,
-      recommendedSupplies: ["Dụng cụ sơ cứu y tế", "Nước uống", "Xẻng/Cuốc (hỗ trợ cứu nạn)", "Thực phẩm dự trữ"]
-    },
-    status: 'Báo cáo mới',
-    timestamp: new Date(Date.now() - 3600000 * 3), // 3 giờ trước
-  },
-];
+const initialReports: EnvironmentalReport[] = []; // Clear static data, fetch from API
 
 // Dữ liệu các điểm môi trường quan trọng (POIs)
 const environmentalPOIs: EnvironmentalPOI[] = [
@@ -131,23 +62,8 @@ const environmentalPOIs: EnvironmentalPOI[] = [
 ];
 
 const App: React.FC = () => {
-  const [reports, setReports] = useState<EnvironmentalReport[]>(() => {
-    try {
-      const savedReportsJSON = localStorage.getItem('daNangGreenReports');
-      if (savedReportsJSON) {
-        const parsedReports = JSON.parse(savedReportsJSON);
-        return parsedReports.map((report: EnvironmentalReport) => ({
-          ...report,
-          timestamp: new Date(report.timestamp),
-        }));
-      }
-    } catch (error) {
-      console.error("Lỗi khi tải báo cáo từ localStorage:", error);
-    }
-    return initialReports;
-  });
-  
-  const [view, setView] = useState<'home' | 'map' | 'form' | 'thankYou' | 'environmentalMap' | 'sos'>('home');
+  const [reports, setReports] = useState<EnvironmentalReport[]>([]);
+  const [view, setView] = useState<'home' | 'map' | 'form' | 'thankYou' | 'environmentalMap' | 'sos' | 'login' | 'dashboard'>('home');
   const [previousView, setPreviousView] = useState<'home' | 'map'>('home');
   const [selectedReport, setSelectedReport] = useState<EnvironmentalReport | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(false);
@@ -157,10 +73,13 @@ const App: React.FC = () => {
   const [toasts, setToasts] = useState<ToastMessage[]>([]);
   const [selectedEducationTopic, setSelectedEducationTopic] = useState<EducationalTopic | null>(null);
   const [mapViewState, setMapViewState] = useState({
-    center: [16.0544, 108.2022] as [number, number],
-    zoom: 13,
+    center: [15.85, 108.3] as [number, number],
+    zoom: 10,
   });
   
+  // Auth State
+  const [user, setUser] = useState<any>(null);
+
   // State cho Trợ lý AI nổi
   const [chatMessages, setChatMessages] = useState<ChatMessage[]>([
     { 
@@ -180,6 +99,56 @@ const App: React.FC = () => {
   // Offline Mode State
   const [isOnline, setIsOnline] = useState<boolean>(navigator.onLine);
   const [pendingReportsCount, setPendingReportsCount] = useState<number>(0);
+  const [isOfflineModalOpen, setIsOfflineModalOpen] = useState(false);
+
+  // Load user from local storage
+  useEffect(() => {
+    const storedUser = localStorage.getItem('user');
+    if (storedUser) {
+      setUser(JSON.parse(storedUser));
+    }
+  }, []);
+
+  // Fetch reports from API
+  const fetchReports = async () => {
+    if (!isOnline) return;
+    try {
+      const response = await fetch('/api/reports');
+      if (response.ok) {
+        const data = await response.json();
+        const parsedData = data.map((report: any) => ({
+          ...report,
+          timestamp: new Date(report.timestamp)
+        }));
+        setReports(parsedData);
+      }
+    } catch (error) {
+      console.error("Failed to fetch reports:", error);
+    }
+  };
+
+  useEffect(() => {
+    fetchReports();
+    
+    // Setup WebSocket for real-time updates
+    if (isOnline) {
+      const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+      const ws = new WebSocket(`${protocol}//${window.location.host}`);
+      
+      ws.onmessage = (event) => {
+        const data = JSON.parse(event.data);
+        if (data.type === 'NEW_REPORT') {
+          addToast(`Có báo cáo mới tại ${data.report.area}`, 'success');
+          const newReport = { ...data.report, timestamp: new Date(data.report.timestamp) };
+          setReports(prev => [newReport, ...prev]);
+        } else if (data.type === 'REPORT_UPDATED') {
+          setReports(prev => prev.map(r => r.id === data.id ? { ...r, status: data.status } : r));
+        }
+      };
+
+      return () => ws.close();
+    }
+  }, [isOnline]);
 
   // Effect to handle online/offline status and sync
   useEffect(() => {
@@ -187,6 +156,7 @@ const App: React.FC = () => {
       setIsOnline(true);
       addToast('Đã kết nối lại Internet. Đang đồng bộ dữ liệu...', 'success');
       syncOfflineReports();
+      fetchReports(); // Refresh data
     };
 
     const handleOffline = () => {
@@ -198,12 +168,7 @@ const App: React.FC = () => {
     window.addEventListener('offline', handleOffline);
 
     // Initial check for pending reports
-    getOfflineReports().then(reports => {
-      setPendingReportsCount(reports.length);
-      if (navigator.onLine && reports.length > 0) {
-        syncOfflineReports();
-      }
-    });
+    updatePendingReportsCount();
 
     return () => {
       window.removeEventListener('online', handleOnline);
@@ -211,44 +176,39 @@ const App: React.FC = () => {
     };
   }, []);
 
+  const updatePendingReportsCount = () => {
+    getOfflineReports().then(reports => {
+      setPendingReportsCount(reports.length);
+      if (navigator.onLine && reports.length > 0) {
+        syncOfflineReports();
+      }
+    });
+  };
+
   const syncOfflineReports = async () => {
     try {
       const offlineReports = await getOfflineReports();
       if (offlineReports.length === 0) return;
 
-      // Simulate sending to server by adding to local state
-      // In a real app, you would POST to an API here
-      setReports(prev => [...offlineReports, ...prev]);
-      
-      // Delete from IndexedDB after successful sync
+      // Send to server
       for (const report of offlineReports) {
+        await fetch('/api/reports', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(report),
+        });
         await deleteOfflineReport(report.id);
       }
 
       setPendingReportsCount(0);
       addToast(`Đã đồng bộ ${offlineReports.length} báo cáo offline thành công!`, 'success');
-      
-      // Trigger background sync registration if supported (optional, for robustness)
-      if ('serviceWorker' in navigator && 'SyncManager' in window) {
-          const registration = await navigator.serviceWorker.ready;
-          // @ts-ignore
-          registration.sync.register('sync-reports');
-      }
+      fetchReports();
 
     } catch (error) {
       console.error("Sync failed:", error);
       addToast('Đồng bộ thất bại. Vui lòng thử lại sau.', 'error');
     }
   };
-  
-  // Effect để tải và lưu báo cáo vào localStorage
-  useEffect(() => {
-    try {
-      localStorage.setItem('daNangGreenReports', JSON.stringify(reports));
-    } catch (error) {
-      console.error("Lỗi khi lưu báo cáo vào localStorage:", error);
-    }
-  }, [reports]);
 
   // Effect để tải điểm từ localStorage khi render lần đầu
   useEffect(() => {
@@ -262,22 +222,55 @@ const App: React.FC = () => {
     }
   }, []);
 
-    // Effect để lấy vị trí của người dùng một lần
+  // Effect để theo dõi vị trí của người dùng liên tục với độ chính xác cao
   useEffect(() => {
-    if (navigator.geolocation) {
-      navigator.geolocation.getCurrentPosition(
-        (position) => {
-          setUserLocation({
-            latitude: position.coords.latitude,
-            longitude: position.coords.longitude,
-          });
-        },
-        (error) => {
-          console.warn("Không thể lấy vị trí người dùng:", error.message);
-        }
-      );
+    if (!navigator.geolocation) {
+      console.error("Trình duyệt không hỗ trợ định vị");
+      return;
     }
-  }, []);
+
+    const watchId = navigator.geolocation.watchPosition(
+      (position) => {
+        const { latitude, longitude, accuracy } = position.coords;
+        console.log(`Vị trí cập nhật: ${latitude}, ${longitude} (Độ chính xác: ${accuracy}m)`);
+        
+        setUserLocation({ latitude, longitude });
+        
+        // Cập nhật tâm bản đồ nếu chưa có vị trí hoặc độ chính xác tốt
+        setMapViewState(prev => {
+          // Nếu chưa có tâm bản đồ thực sự (đang ở mặc định), thì cập nhật
+          if (prev.center[0] === 15.85 && prev.center[1] === 108.3) {
+            return { ...prev, center: [latitude, longitude] };
+          }
+          return prev;
+        });
+      },
+      (error) => {
+        let errorMsg = "";
+        switch(error.code) {
+          case error.PERMISSION_DENIED:
+            errorMsg = "Người dùng từ chối cấp quyền định vị.";
+            break;
+          case error.POSITION_UNAVAILABLE:
+            errorMsg = "Thông tin vị trí không khả dụng.";
+            break;
+          case error.TIMEOUT:
+            errorMsg = "Hết thời gian chờ lấy vị trí.";
+            break;
+          default:
+            errorMsg = "Lỗi định vị không xác định.";
+        }
+        console.warn("Lỗi định vị:", errorMsg);
+      },
+      { 
+        enableHighAccuracy: true, 
+        timeout: 15000, 
+        maximumAge: 0 
+      }
+    );
+
+    return () => navigator.geolocation.clearWatch(watchId);
+  }, []); // Chạy một lần khi mount, watchPosition sẽ tự lo phần cập nhật
 
   // Effect để lưu điểm vào localStorage mỗi khi chúng thay đổi
   useEffect(() => {
@@ -335,15 +328,21 @@ const App: React.FC = () => {
         setPendingReportsCount(prev => prev + 1);
         addToast('Đã lưu báo cáo vào bộ nhớ tạm. Sẽ tự động gửi khi có mạng.', 'success');
         
-        // Register background sync if supported
-        if ('serviceWorker' in navigator && 'SyncManager' in window) {
-            const registration = await navigator.serviceWorker.ready;
-            // @ts-ignore
-            registration.sync.register('sync-reports');
+        // SMS Fallback Prompt
+        if (window.confirm("Bạn đang offline. Bạn có muốn gửi tin nhắn SMS khẩn cấp kèm tọa độ GPS đến tổng đài không?")) {
+            const smsBody = `SOS! Su co moi truong tai: ${coords.latitude},${coords.longitude}. Mo ta: ${userDescription}`;
+            window.open(`sms:1022?body=${encodeURIComponent(smsBody)}`);
         }
+
       } else {
-        // Online: Add directly to state
-        setReports(prevReports => [newReport, ...prevReports]);
+        // Online: Send to API
+        const response = await fetch('/api/reports', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(newReport),
+        });
+
+        if (!response.ok) throw new Error('Failed to submit report');
         
         // Tặng điểm cho báo cáo mới
         const pointsAwarded = 10;
@@ -351,6 +350,7 @@ const App: React.FC = () => {
         setLastAwardedPoints(pointsAwarded);
         
         addToast('Báo cáo đã được gửi thành công!', 'success');
+        fetchReports(); // Refresh list
       }
       
       setView('thankYou');
@@ -364,24 +364,39 @@ const App: React.FC = () => {
     }
   };
   
-  const handleUpdateReportStatus = (reportId: string) => {
+  const handleUpdateReportStatus = async (reportId: string) => {
      const statusCycle: Record<ReportStatus, ReportStatus> = {
       'Báo cáo mới': 'Đang xử lý',
       'Đang xử lý': 'Đã xử lý',
       'Đã xử lý': 'Báo cáo mới',
     };
     
-    setReports(prevReports =>
-      prevReports.map(report =>
-        report.id === reportId
-          ? { ...report, status: statusCycle[report.status] }
-          : report
-      )
-    );
+    const currentReport = reports.find(r => r.id === reportId);
+    if (!currentReport) return;
 
-    const newStatus = statusCycle[selectedReport!.status];
-    setSelectedReport(prev => prev ? {...prev, status: newStatus} : null);
-    addToast('Cập nhật trạng thái báo cáo thành công!');
+    const newStatus = statusCycle[currentReport.status];
+
+    try {
+        const response = await fetch(`/api/reports/${reportId}/status`, {
+            method: 'PATCH',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ status: newStatus }),
+        });
+
+        if (response.ok) {
+            setReports(prevReports =>
+                prevReports.map(report =>
+                  report.id === reportId
+                    ? { ...report, status: newStatus }
+                    : report
+                )
+              );
+              setSelectedReport(prev => prev ? {...prev, status: newStatus} : null);
+              addToast('Cập nhật trạng thái báo cáo thành công!');
+        }
+    } catch (error) {
+        addToast('Lỗi cập nhật trạng thái', 'error');
+    }
   };
 
   const handleSelectReport = (report: EnvironmentalReport | null) => {
@@ -448,6 +463,18 @@ const App: React.FC = () => {
     setMapViewState({ center: [center.lat, center.lng], zoom });
   }, []);
 
+  const handleLogin = (userData: any) => {
+    setUser(userData);
+    setView('dashboard');
+  };
+
+  const handleLogout = () => {
+    localStorage.removeItem('token');
+    localStorage.removeItem('user');
+    setUser(null);
+    setView('home');
+  };
+
   const renderContent = () => {
     switch(view) {
       case 'home':
@@ -463,6 +490,7 @@ const App: React.FC = () => {
       case 'map':
         return <MainMapView 
                   reports={reports} 
+                  userLocation={userLocation}
                   onSelectReport={handleSelectReport} 
                   onNavigateHome={() => setView('home')}
                   onStartNewReport={() => handleStartNewReport('map')}
@@ -488,13 +516,18 @@ const App: React.FC = () => {
         return <EnvironmentalMapView
                   reports={reports}
                   pois={environmentalPOIs}
+                  userLocation={userLocation}
                   onNavigateHome={() => setView('home')}
                   onSelectReport={handleSelectReport}
                 />;
       case 'sos':
         return <SOSView onClose={() => setView('home')} />;
+      case 'login':
+        return <LoginView onLogin={handleLogin} />;
+      case 'dashboard':
+        return <DashboardView user={user} />;
       default:
-         return <HomeView 
+        return <HomeView 
                   reports={reports} 
                   onNavigateToMap={() => setView('map')} 
                   onStartNewReport={() => handleStartNewReport('home')}
@@ -523,10 +556,13 @@ const App: React.FC = () => {
            <div className="flex items-center space-x-3 sm:space-x-4">
               {/* Offline Indicator */}
               {!isOnline && (
-                <div className="flex items-center space-x-1 bg-amber-100 text-amber-800 px-3 py-1.5 rounded-full text-xs font-bold animate-pulse">
+                <button 
+                  onClick={() => setIsOfflineModalOpen(true)}
+                  className="flex items-center space-x-1 bg-amber-100 text-amber-800 px-3 py-1.5 rounded-full text-xs font-bold animate-pulse hover:bg-amber-200 transition-colors"
+                >
                   <CloudIcon className="w-4 h-4" />
                   <span className="hidden sm:inline">Offline ({pendingReportsCount})</span>
-                </div>
+                </button>
               )}
               {isOnline && pendingReportsCount > 0 && (
                  <div className="flex items-center space-x-1 bg-blue-100 text-blue-800 px-3 py-1.5 rounded-full text-xs font-bold">
@@ -536,11 +572,35 @@ const App: React.FC = () => {
               )}
               <button
                 onClick={() => setView('sos')}
-                className="bg-red-600 text-white px-4 py-1.5 rounded-full text-sm font-bold flex items-center space-x-2 animate-pulse hover:bg-red-700 transition-all shadow-lg hover:shadow-red-200 transform hover:scale-105"
+                className="w-10 h-10 bg-red-600 text-white rounded-full flex items-center justify-center animate-pulse hover:bg-red-700 transition-all shadow-lg hover:shadow-red-200 transform hover:scale-105"
+                title="SOS"
               >
-                <SOSIcon className="w-5 h-5" />
-                <span className="hidden xs:inline">SOS</span>
+                <SOSIcon className="w-6 h-6" />
               </button>
+
+              {user ? (
+                <div className="flex items-center space-x-2">
+                  <button 
+                    onClick={() => setView('dashboard')}
+                    className="text-sm font-bold text-slate-700 hover:text-teal-600 transition-colors"
+                  >
+                    Dashboard
+                  </button>
+                  <button 
+                    onClick={handleLogout}
+                    className="text-sm font-bold text-red-600 hover:text-red-700 transition-colors"
+                  >
+                    Đăng xuất
+                  </button>
+                </div>
+              ) : (
+                <button 
+                  onClick={() => setView('login')}
+                  className="text-sm font-bold text-slate-700 hover:text-teal-600 transition-colors bg-slate-100 px-3 py-1.5 rounded-full"
+                >
+                  Cán bộ
+                </button>
+              )}
 
                <div className="flex items-center space-x-2 bg-gradient-to-r from-amber-50 to-yellow-50 border border-amber-100 text-amber-900 font-bold px-4 py-1.5 rounded-full text-sm shadow-sm">
                   <TrophyIcon className="w-5 h-5 text-amber-500" />
@@ -568,6 +628,12 @@ const App: React.FC = () => {
             onClose={handleCloseEducationModal}
           />
         )}
+
+        <OfflineReportsModal 
+          isOpen={isOfflineModalOpen}
+          onClose={() => setIsOfflineModalOpen(false)}
+          onReportsChanged={updatePendingReportsCount}
+        />
       </main>
 
       {/* Trợ lý AI nổi */}

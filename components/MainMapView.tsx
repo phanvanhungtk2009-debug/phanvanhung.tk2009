@@ -16,6 +16,7 @@ import { FloodIcon } from './icons/FloodIcon';
 
 interface MainMapViewProps {
   reports: EnvironmentalReport[];
+  userLocation: { latitude: number; longitude: number } | null;
   onSelectReport: (report: EnvironmentalReport) => void;
   onNavigateHome: () => void;
   onStartNewReport: () => void;
@@ -78,10 +79,11 @@ const createCustomIcon = (status: ReportStatus) => {
 };
 
 
-const MainMapView: React.FC<MainMapViewProps> = ({ reports, onSelectReport, onNavigateHome, onStartNewReport, selectedReport, initialViewState, onViewChange }) => {
+const MainMapView: React.FC<MainMapViewProps> = ({ reports, userLocation, onSelectReport, onNavigateHome, onStartNewReport, selectedReport, initialViewState, onViewChange }) => {
   const mapContainerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<L.Map | null>(null);
   const markersRef = useRef<L.LayerGroup | null>(null);
+  const userLayerRef = useRef<L.LayerGroup | null>(null);
   const tileLayerRef = useRef<L.TileLayer | null>(null);
   const sovereigntyLayerRef = useRef<L.LayerGroup | null>(null);
   
@@ -133,6 +135,7 @@ const MainMapView: React.FC<MainMapViewProps> = ({ reports, onSelectReport, onNa
 
       mapRef.current = map;
       markersRef.current = L.layerGroup().addTo(map);
+      userLayerRef.current = L.layerGroup().addTo(map);
       sovereigntyLayerRef.current = L.layerGroup().addTo(map);
 
       // --- THÊM NHÃN CHỦ QUYỀN VIỆT NAM ---
@@ -165,6 +168,32 @@ const MainMapView: React.FC<MainMapViewProps> = ({ reports, onSelectReport, onNa
       }
     };
   }, []); // Mảng phụ thuộc rỗng đảm bảo điều này chỉ chạy một lần khi mount
+
+  // Cập nhật vị trí người dùng
+  useEffect(() => {
+    if (!userLayerRef.current || !userLocation) return;
+    userLayerRef.current.clearLayers();
+
+    const userIcon = L.divIcon({
+      html: `
+        <div class="relative flex items-center justify-center">
+          <div class="absolute w-8 h-8 bg-blue-500/30 rounded-full animate-ping"></div>
+          <div class="relative w-4 h-4 bg-blue-600 rounded-full border-2 border-white shadow-lg"></div>
+        </div>
+      `,
+      className: 'bg-transparent',
+      iconSize: [32, 32],
+      iconAnchor: [16, 16],
+    });
+
+    const marker = L.marker([userLocation.latitude, userLocation.longitude], { 
+      icon: userIcon,
+      zIndexOffset: 2000 
+    });
+    
+    marker.bindPopup("<div class='text-xs font-bold text-blue-700'>Vị trí của bạn</div>");
+    userLayerRef.current.addLayer(marker);
+  }, [userLocation]);
 
   // Cập nhật lớp bản đồ khi state thay đổi
   useEffect(() => {
@@ -245,6 +274,12 @@ const MainMapView: React.FC<MainMapViewProps> = ({ reports, onSelectReport, onNa
     setCurrentLayerKey(layerKeys[nextIndex]);
   };
 
+  const handleCenterOnUser = () => {
+    if (mapRef.current && userLocation) {
+      mapRef.current.flyTo([userLocation.latitude, userLocation.longitude], 16);
+    }
+  };
+
   return (
     <div className="relative w-full h-full">
       <div ref={mapContainerRef} className="w-full h-full z-0" />
@@ -265,6 +300,19 @@ const MainMapView: React.FC<MainMapViewProps> = ({ reports, onSelectReport, onNa
           >
             <LayersIcon className="w-6 h-6" />
           </button>
+          {userLocation && (
+            <button
+              onClick={handleCenterOnUser}
+              className="bg-white/80 backdrop-blur-sm text-blue-600 rounded-full p-4 shadow-lg hover:bg-white transition-all focus:outline-none focus:ring-2 focus:ring-blue-500"
+              aria-label="Định vị tôi"
+              title="Vị trí của tôi"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-6 h-6">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M15 10.5a3 3 0 11-6 0 3 3 0 016 0z" />
+                <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 10.5c0 7.142-7.5 11.25-7.5 11.25s-7.5-4.108-7.5-11.25a7.5 7.5 0 1115 0z" />
+              </svg>
+            </button>
+          )}
       </div>
       
       <div className="absolute top-4 right-4 z-10 flex flex-col items-end space-y-2">

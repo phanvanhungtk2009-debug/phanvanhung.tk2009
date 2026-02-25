@@ -2,11 +2,11 @@
 import { GoogleGenAI, Type } from "@google/genai";
 import { AIAnalysis, GroundingChunk } from '../types';
 
-if (!process.env.GEMINI_API_KEY) {
+if (!process.env.API_KEY) {
   throw new Error("API_KEY environment variable not set");
 }
 
-const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
+const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
 
 const responseSchema = {
   type: Type.OBJECT,
@@ -115,7 +115,7 @@ export const askAIAboutEnvironment = async (
     }
 
      const response = await ai.models.generateContent({
-      model: "gemini-3-flash-preview",
+      model: "gemini-2.5-flash",
       contents: question,
       config,
     });

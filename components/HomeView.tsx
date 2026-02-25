@@ -72,9 +72,10 @@ const educationalContent: EducationalTopic[] = [
   }
 ];
 
-const formatTimeAgo = (date: Date): string => {
+const formatTimeAgo = (date: Date | string): string => {
   const now = new Date();
-  const seconds = Math.floor((now.getTime() - date.getTime()) / 1000);
+  const pastDate = new Date(date);
+  const seconds = Math.floor((now.getTime() - pastDate.getTime()) / 1000);
 
   let interval = seconds / 31536000; // năm
   if (interval > 1) {

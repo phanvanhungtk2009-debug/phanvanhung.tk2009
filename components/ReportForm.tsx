@@ -23,6 +23,7 @@ const ReportForm: React.FC<ReportFormProps> = ({ onSubmit, onCancel, isLoading, 
   const [mediaType, setMediaType] = useState<'image' | 'video' | null>(null);
   const [description, setDescription] = useState('');
   const [coords, setCoords] = useState<{ latitude: number; longitude: number } | null>(null);
+  const [accuracy, setAccuracy] = useState<number | null>(null);
   const [locationError, setLocationError] = useState<string | null>(null);
   const [isGettingLocation, setIsGettingLocation] = useState(false);
   
@@ -49,10 +50,9 @@ const ReportForm: React.FC<ReportFormProps> = ({ onSubmit, onCancel, isLoading, 
     setLocationError(null);
     navigator.geolocation.getCurrentPosition(
       (position) => {
-        setCoords({
-          latitude: position.coords.latitude,
-          longitude: position.coords.longitude,
-        });
+        const { latitude, longitude, accuracy } = position.coords;
+        setCoords({ latitude, longitude });
+        setAccuracy(accuracy);
         setIsGettingLocation(false);
         locationJustFetched.current = true;
         highlightTimeoutRef.current = window.setTimeout(() => {
@@ -60,10 +60,10 @@ const ReportForm: React.FC<ReportFormProps> = ({ onSubmit, onCancel, isLoading, 
         }, 2000); // Highlight trong 2 giây
       },
       (err) => {
-        setLocationError(`Không thể lấy vị trí: ${err.message}`);
+        setLocationError(`Lỗi: ${err.message}. Hãy thử bật GPS và cấp quyền.`);
         setIsGettingLocation(false);
       },
-      { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
+      { enableHighAccuracy: true, timeout: 20000, maximumAge: 0 }
     );
   };
   
@@ -192,7 +192,7 @@ const ReportForm: React.FC<ReportFormProps> = ({ onSubmit, onCancel, isLoading, 
           <div className="flex justify-between items-start">
             <div>
                 <h2 className="text-2xl sm:text-3xl font-extrabold text-slate-800 tracking-tight">Gửi báo cáo sự cố</h2>
-                <p className="text-slate-500 mt-2">Đóng góp của bạn giúp Đà Nẵng xanh và sạch hơn.</p>
+                <p className="text-slate-500 mt-2">Đóng góp của bạn giúp thành phố xanh và sạch hơn.</p>
             </div>
             {!isOnline && (
                 <div className="bg-amber-100 text-amber-800 px-3 py-1 rounded-lg text-xs font-bold border border-amber-200">
@@ -282,7 +282,10 @@ const ReportForm: React.FC<ReportFormProps> = ({ onSubmit, onCancel, isLoading, 
                         </div>
                         <div>
                             <span className="font-bold text-green-800 block">Đã xác định vị trí</span>
-                            <p className="font-mono text-xs text-slate-500 mt-0.5">{`${coords.latitude.toFixed(6)}, ${coords.longitude.toFixed(6)}`}</p>
+                            <p className="font-mono text-xs text-slate-500 mt-0.5">
+                              {`${coords.latitude.toFixed(6)}, ${coords.longitude.toFixed(6)}`}
+                              {accuracy && ` (±${accuracy.toFixed(0)}m)`}
+                            </p>
                         </div>
                     </div>
                 ) : (
@@ -316,7 +319,7 @@ const ReportForm: React.FC<ReportFormProps> = ({ onSubmit, onCancel, isLoading, 
               <button
                 type="submit"
                 disabled={!mediaFile || !coords || !aiAnalysis || isLoading}
-                className={`px-8 py-3 font-bold rounded-xl shadow-lg transition-all disabled:bg-none disabled:bg-slate-300 disabled:shadow-none disabled:cursor-not-allowed disabled:transform-none ${isOnline ? 'bg-gradient-to-r from-teal-500 to-teal-600 text-white shadow-teal-200 hover:shadow-teal-300 hover:-translate-y-0.5' : 'bg-amber-500 text-white shadow-amber-200 hover:shadow-amber-300'}`}
+                className={`px-8 py-3 font-bold rounded-xl shadow-lg transition-all duration-300 hover:scale-105 hover:shadow-xl active:scale-95 disabled:bg-none disabled:bg-slate-300 disabled:shadow-none disabled:cursor-not-allowed disabled:transform-none ${isOnline ? 'bg-gradient-to-r from-teal-500 to-teal-600 text-white shadow-teal-200 hover:shadow-teal-300' : 'bg-amber-500 text-white shadow-amber-200 hover:shadow-amber-300'}`}
               >
                 {isLoading ? 'Đang xử lý...' : (isOnline ? 'Gửi Báo Cáo' : 'Lưu Offline')}
               </button>

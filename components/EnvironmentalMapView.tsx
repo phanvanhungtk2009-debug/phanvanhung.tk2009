@@ -73,15 +73,17 @@ const createCustomIcon = (type: 'pin' | 'lifebuoy', color?: string) => {
 interface EnvironmentalMapViewProps {
   reports: EnvironmentalReport[];
   pois: EnvironmentalPOI[];
+  userLocation: { latitude: number; longitude: number } | null;
   onNavigateHome: () => void;
   onSelectReport: (report: EnvironmentalReport) => void;
 }
 
-const EnvironmentalMapView: React.FC<EnvironmentalMapViewProps> = ({ reports, pois, onNavigateHome, onSelectReport }) => {
+const EnvironmentalMapView: React.FC<EnvironmentalMapViewProps> = ({ reports, pois, userLocation, onNavigateHome, onSelectReport }) => {
   const mapContainerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<L.Map | null>(null);
   const reportsLayerRef = useRef<L.LayerGroup | null>(null);
   const poisLayerRef = useRef<L.LayerGroup | null>(null);
+  const userLayerRef = useRef<L.LayerGroup | null>(null);
   const sovereigntyLayerRef = useRef<L.LayerGroup | null>(null);
 
   const [activeFilter, setActiveFilter] = useState<string>('Tất cả');
@@ -102,8 +104,8 @@ const EnvironmentalMapView: React.FC<EnvironmentalMapViewProps> = ({ reports, po
   useEffect(() => {
     if (mapContainerRef.current && !mapRef.current) {
       const map = L.map(mapContainerRef.current, {
-        center: [16.0544, 108.2022], // Trung tâm Đà Nẵng
-        zoom: 13,
+        center: [15.85, 108.3], // Trung tâm Đà Nẵng - Quảng Nam
+        zoom: 10,
         zoomControl: false,
       });
       mapRef.current = map;
@@ -120,6 +122,7 @@ const EnvironmentalMapView: React.FC<EnvironmentalMapViewProps> = ({ reports, po
 
       reportsLayerRef.current = L.layerGroup();
       poisLayerRef.current = L.layerGroup();
+      userLayerRef.current = L.layerGroup();
       sovereigntyLayerRef.current = L.layerGroup();
       
       const overlayMaps = {
@@ -130,6 +133,7 @@ const EnvironmentalMapView: React.FC<EnvironmentalMapViewProps> = ({ reports, po
       baseLayers["Bản đồ mặc định"].addTo(map);
       reportsLayerRef.current.addTo(map);
       poisLayerRef.current.addTo(map);
+      userLayerRef.current.addTo(map);
       sovereigntyLayerRef.current.addTo(map);
 
       // --- THÊM NHÃN CHỦ QUYỀN VIỆT NAM ---
@@ -163,6 +167,32 @@ const EnvironmentalMapView: React.FC<EnvironmentalMapViewProps> = ({ reports, po
       }
     };
   }, []);
+
+  // Cập nhật vị trí người dùng
+  useEffect(() => {
+    if (!userLayerRef.current || !userLocation) return;
+    userLayerRef.current.clearLayers();
+
+    const userIcon = L.divIcon({
+      html: `
+        <div class="relative flex items-center justify-center">
+          <div class="absolute w-8 h-8 bg-blue-500/30 rounded-full animate-ping"></div>
+          <div class="relative w-4 h-4 bg-blue-600 rounded-full border-2 border-white shadow-lg"></div>
+        </div>
+      `,
+      className: 'bg-transparent',
+      iconSize: [32, 32],
+      iconAnchor: [16, 16],
+    });
+
+    const marker = L.marker([userLocation.latitude, userLocation.longitude], { 
+      icon: userIcon,
+      zIndexOffset: 2000 
+    });
+    
+    marker.bindPopup("<div class='text-xs font-bold text-blue-700'>Vị trí của bạn</div>");
+    userLayerRef.current.addLayer(marker);
+  }, [userLocation]);
 
   // Cập nhật các ghim báo cáo khi bộ lọc thay đổi
   useEffect(() => {

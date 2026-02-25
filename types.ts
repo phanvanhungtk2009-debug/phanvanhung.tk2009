@@ -5,7 +5,7 @@ import React from 'react';
 export type ReportStatus = 'Báo cáo mới' | 'Đang xử lý' | 'Đã xử lý';
 
 export interface AIAnalysis {
-  issueType: 'Xả rác không đúng nơi quy định' | 'Ngập lụt' | 'Sạt lở đất' | 'Cần chăm sóc cây xanh' | 'Khác' | 'Không có sự cố';
+  issueType: 'Xả rác không đúng nơi quy định' | 'Ngập lụt' | 'Sạt lở đất' | 'Cần chăm sóc cây xanh' | 'Khác' | 'Không có sự cố' | 'Đang chờ phân tích';
   description: string;
   priority: 'Cao' | 'Trung bình' | 'Thấp';
   solution: string; // Giải pháp do AI đề xuất
