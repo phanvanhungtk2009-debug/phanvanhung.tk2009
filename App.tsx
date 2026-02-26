@@ -264,7 +264,7 @@ const App: React.FC = () => {
       },
       { 
         enableHighAccuracy: true, 
-        timeout: 15000, 
+        timeout: 30000, 
         maximumAge: 0 
       }
     );

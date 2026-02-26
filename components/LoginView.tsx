@@ -73,13 +73,21 @@ const LoginView: React.FC<LoginViewProps> = ({ onLogin }) => {
     return R * c;
   };
 
-  const handleGetLocation = () => {
+  const handleGetLocation = (retryWithLowAccuracy = true) => {
     if (!navigator.geolocation) {
       setError('Trình duyệt không hỗ trợ định vị');
       return;
     }
 
     setIsLoading(true);
+    setError('');
+
+    const options = { 
+      enableHighAccuracy: retryWithLowAccuracy, 
+      timeout: retryWithLowAccuracy ? 15000 : 10000, 
+      maximumAge: 0 
+    };
+
     navigator.geolocation.getCurrentPosition(
       (position) => {
         const { latitude, longitude } = position.coords;
@@ -100,10 +108,17 @@ const LoginView: React.FC<LoginViewProps> = ({ onLogin }) => {
         setSuccess(`Đã xác định vị trí: ${detectedArea} (Độ chính xác: ${position.coords.accuracy.toFixed(0)}m)`);
       },
       (err) => {
-        setError(`Không thể lấy vị trí: ${err.message}`);
-        setIsLoading(false);
+        if (retryWithLowAccuracy && (err.code === err.TIMEOUT || err.code === err.POSITION_UNAVAILABLE)) {
+          console.warn("High accuracy GPS failed in Login, retrying with low accuracy...");
+          handleGetLocation(false);
+        } else {
+          let msg = err.message;
+          if (err.code === err.TIMEOUT) msg = "Hết thời gian chờ. Hãy bật GPS và thử lại.";
+          setError(`Lỗi định vị: ${msg}`);
+          setIsLoading(false);
+        }
       },
-      { enableHighAccuracy: true, timeout: 20000, maximumAge: 0 }
+      options
     );
   };
 
@@ -241,7 +256,7 @@ const LoginView: React.FC<LoginViewProps> = ({ onLogin }) => {
                   </div>
                   <button
                     type="button"
-                    onClick={handleGetLocation}
+                    onClick={() => handleGetLocation()}
                     className="p-3.5 bg-slate-100 text-slate-600 rounded-xl hover:bg-slate-200 transition-all"
                     title="Xác định vị trí qua GPS"
                   >

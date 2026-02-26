@@ -34,7 +34,7 @@ const ReportForm: React.FC<ReportFormProps> = ({ onSubmit, onCancel, isLoading, 
   const locationJustFetched = useRef(false);
   const highlightTimeoutRef = useRef<number | null>(null);
 
-  const fetchLocation = () => {
+  const fetchLocation = (retryWithLowAccuracy = true) => {
     if (!navigator.geolocation) {
       setLocationError('Trình duyệt của bạn không hỗ trợ định vị.');
       return;
@@ -45,9 +45,15 @@ const ReportForm: React.FC<ReportFormProps> = ({ onSubmit, onCancel, isLoading, 
     }
     locationJustFetched.current = false;
 
-
     setIsGettingLocation(true);
     setLocationError(null);
+
+    const options = { 
+      enableHighAccuracy: retryWithLowAccuracy, 
+      timeout: retryWithLowAccuracy ? 15000 : 10000, 
+      maximumAge: 0 
+    };
+
     navigator.geolocation.getCurrentPosition(
       (position) => {
         const { latitude, longitude, accuracy } = position.coords;
@@ -60,10 +66,19 @@ const ReportForm: React.FC<ReportFormProps> = ({ onSubmit, onCancel, isLoading, 
         }, 2000); // Highlight trong 2 giây
       },
       (err) => {
-        setLocationError(`Lỗi: ${err.message}. Hãy thử bật GPS và cấp quyền.`);
-        setIsGettingLocation(false);
+        if (retryWithLowAccuracy && (err.code === err.TIMEOUT || err.code === err.POSITION_UNAVAILABLE)) {
+          console.warn("High accuracy GPS failed, retrying with low accuracy...");
+          fetchLocation(false);
+        } else {
+          let msg = err.message;
+          if (err.code === err.TIMEOUT) msg = "Hết thời gian chờ (Timeout). Hãy đảm bảo bạn đang ở nơi thoáng đãng và đã bật GPS.";
+          if (err.code === err.PERMISSION_DENIED) msg = "Bạn đã từ chối quyền truy cập vị trí. Hãy kiểm tra cài đặt trình duyệt.";
+          
+          setLocationError(`Lỗi: ${msg}`);
+          setIsGettingLocation(false);
+        }
       },
-      { enableHighAccuracy: true, timeout: 20000, maximumAge: 0 }
+      options
     );
   };
   
@@ -296,7 +311,7 @@ const ReportForm: React.FC<ReportFormProps> = ({ onSubmit, onCancel, isLoading, 
                 )}
                 <button 
                     type="button" 
-                    onClick={fetchLocation} 
+                    onClick={() => fetchLocation()} 
                     className="text-slate-500 hover:text-teal-600 p-2 rounded-full hover:bg-white transition-colors disabled:opacity-50"
                     disabled={isGettingLocation}
                     title="Lấy lại vị trí"
