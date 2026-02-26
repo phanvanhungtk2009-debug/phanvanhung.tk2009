@@ -48,7 +48,7 @@ const SOSView: React.FC<SOSViewProps> = ({ onClose }) => {
 
   // Hàm tạo link SMS cho offline mode
   const getSMSLink = (type: string) => {
-    const phone = "0905123456"; // Số giả định của đội cứu hộ Đà Nẵng
+    const phone = "0347885360"; // Số giả định của đội cứu hộ Đà Nẵng
     const locStr = location ? `${location.lat.toFixed(5)},${location.lng.toFixed(5)}` : "Khong xac dinh";
     const body = `SOS: Toi dang gap nguy hiem boi ${type} tai toa do ${locStr}. Can ho tro gap!`;
     // Sử dụng giao thức sms: để mở ứng dụng tin nhắn native
