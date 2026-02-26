@@ -24,9 +24,22 @@ const SOSView: React.FC<SOSViewProps> = ({ onClose }) => {
           });
         },
         (err) => {
-          setError("Không thể lấy vị trí. Vui lòng bật GPS.");
+          console.warn("SOS GPS Error:", err);
+          // Retry with low accuracy if high accuracy fails
+          navigator.geolocation.getCurrentPosition(
+            (position) => {
+              setLocation({
+                lat: position.coords.latitude,
+                lng: position.coords.longitude,
+              });
+            },
+            (retryErr) => {
+               setError("Không thể lấy vị trí. Vui lòng bật GPS.");
+            },
+            { enableHighAccuracy: false, timeout: 10000, maximumAge: 300000 }
+          );
         },
-        { enableHighAccuracy: true, timeout: 5000, maximumAge: 0 }
+        { enableHighAccuracy: true, timeout: 10000, maximumAge: 300000 }
       );
     } else {
       setError("Trình duyệt không hỗ trợ định vị.");

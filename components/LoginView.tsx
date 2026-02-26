@@ -84,8 +84,8 @@ const LoginView: React.FC<LoginViewProps> = ({ onLogin }) => {
 
     const options = { 
       enableHighAccuracy: retryWithLowAccuracy, 
-      timeout: retryWithLowAccuracy ? 15000 : 10000, 
-      maximumAge: 0 
+      timeout: retryWithLowAccuracy ? 10000 : 30000, 
+      maximumAge: retryWithLowAccuracy ? 0 : 300000 
     };
 
     navigator.geolocation.getCurrentPosition(
