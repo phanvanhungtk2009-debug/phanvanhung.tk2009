@@ -85,8 +85,15 @@ export const analyzeEnvironmentalImage = async (base64Image: string, mimeType: s
 
     return analysisResult;
 
-  } catch (error) {
+  } catch (error: any) {
     console.error("Lỗi khi gọi API Gemini để phân tích hình ảnh:", error);
+    
+    // Kiểm tra lỗi quota (429 RESOURCE_EXHAUSTED)
+    const errorString = JSON.stringify(error);
+    if (errorString.includes("429") || errorString.includes("RESOURCE_EXHAUSTED")) {
+      throw new Error("QUOTA_EXCEEDED: Hệ thống AI đang quá tải hoặc hết hạn mức. Bạn vẫn có thể gửi báo cáo trực tiếp mà không cần AI phân tích.");
+    }
+    
     throw new Error("Không thể phân tích hình ảnh. Vui lòng thử lại sau.");
   }
 };
@@ -127,8 +134,14 @@ export const askAIAboutEnvironment = async (
         groundingChunks: groundingChunks,
     };
 
-  } catch (error) {
+  } catch (error: any) {
     console.error("Lỗi khi gọi API Gemini để trò chuyện:", error);
+    
+    const errorString = JSON.stringify(error);
+    if (errorString.includes("429") || errorString.includes("RESOURCE_EXHAUSTED")) {
+      throw new Error("Hệ thống AI đang bận (hết hạn mức). Vui lòng quay lại sau vài phút.");
+    }
+    
     throw new Error("Lỗi kết nối với trợ lý AI.");
   }
 }
@@ -165,8 +178,14 @@ export const geocodeWithAI = async (query: string): Promise<{ lat: number; lng: 
     }
     return null;
 
-  } catch (error) {
+  } catch (error: any) {
     console.error("Lỗi khi geocode với AI:", error);
+    
+    const errorString = JSON.stringify(error);
+    if (errorString.includes("429") || errorString.includes("RESOURCE_EXHAUSTED")) {
+      console.warn("AI Geocoding quota exceeded.");
+    }
+    
     return null;
   }
 };

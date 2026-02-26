@@ -176,12 +176,23 @@ const ReportForm: React.FC<ReportFormProps> = ({ onSubmit, onCancel, isLoading, 
         if (result.isIssuePresent) {
           setAiAnalysis(result);
         } else {
-          setAnalysisMessage("AI không phát hiện thấy sự cố môi trường trong tệp này. Vui lòng chọn một tệp khác để báo cáo.");
+          setAiAnalysis({
+            issueType: 'Khác',
+            description: result.description || 'AI không tự động nhận diện được sự cố, nhưng bạn vẫn có thể gửi báo cáo này.',
+            priority: 'Trung bình',
+            solution: 'Cần cán bộ kiểm tra thực tế.',
+            isIssuePresent: true
+          });
+          setAnalysisMessage("AI không tự động nhận diện được sự cố cụ thể. Bạn vẫn có thể tiếp tục gửi báo cáo nếu thấy cần thiết.");
         }
 
       } catch (err) {
           const errorMessage = err instanceof Error ? err.message : 'Lỗi không xác định.';
-          setAnalysisMessage(`Lỗi phân tích: ${errorMessage}`);
+          if (errorMessage.includes("QUOTA_EXCEEDED")) {
+            setAnalysisMessage("Hệ thống AI đang quá tải (hết hạn mức). Bạn vẫn có thể tiếp tục gửi báo cáo, chúng tôi sẽ xử lý thủ công.");
+          } else {
+            setAnalysisMessage(`Lỗi phân tích: ${errorMessage}`);
+          }
       } finally {
         setIsAnalyzing(false);
       }
@@ -194,8 +205,17 @@ const ReportForm: React.FC<ReportFormProps> = ({ onSubmit, onCancel, isLoading, 
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (mediaFile && coords && aiAnalysis && !isLoading) {
-      onSubmit(mediaFile, description, coords, aiAnalysis);
+    if (mediaFile && coords && !isLoading) {
+      // Nếu chưa có kết quả phân tích AI, tạo một bản phân tích mặc định "Đang chờ"
+      const finalAnalysis: AIAnalysis = aiAnalysis || {
+        issueType: 'Đang chờ phân tích',
+        description: description || 'Người dùng đã gửi báo cáo trực tiếp.',
+        priority: 'Trung bình',
+        solution: 'Đang chờ hệ thống kiểm tra và đề xuất giải pháp.',
+        isIssuePresent: true
+      };
+      
+      onSubmit(mediaFile, description, coords, finalAnalysis);
     }
   };
 
@@ -333,7 +353,7 @@ const ReportForm: React.FC<ReportFormProps> = ({ onSubmit, onCancel, isLoading, 
               </button>
               <button
                 type="submit"
-                disabled={!mediaFile || !coords || !aiAnalysis || isLoading}
+                disabled={!mediaFile || !coords || isLoading}
                 className={`px-8 py-3 font-bold rounded-xl shadow-lg transition-all duration-300 hover:scale-105 hover:shadow-xl active:scale-95 disabled:bg-none disabled:bg-slate-300 disabled:shadow-none disabled:cursor-not-allowed disabled:transform-none ${isOnline ? 'bg-gradient-to-r from-teal-500 to-teal-600 text-white shadow-teal-200 hover:shadow-teal-300' : 'bg-amber-500 text-white shadow-amber-200 hover:shadow-amber-300'}`}
               >
                 {isLoading ? 'Đang xử lý...' : (isOnline ? 'Gửi Báo Cáo' : 'Lưu Offline')}
