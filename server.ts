@@ -256,6 +256,11 @@ async function startServer() {
   } else {
     // Serve static files in production (if needed)
     app.use(express.static('dist'));
+    
+    // SPA fallback for production
+    app.get('*', (req, res) => {
+      res.sendFile('index.html', { root: 'dist' });
+    });
   }
 
   server.listen(PORT, '0.0.0.0', () => {

@@ -68,7 +68,7 @@ export const analyzeEnvironmentalImage = async (base64Image: string, mimeType: s
     };
     
     const response = await ai.models.generateContent({
-      model: 'gemini-3-pro-preview',
+      model: 'gemini-2.5-flash-latest',
       contents: { parts: [imagePart, textPart] },
       config: {
         responseMimeType: "application/json",
