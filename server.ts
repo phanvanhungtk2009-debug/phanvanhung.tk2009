@@ -92,8 +92,7 @@ async function startServer() {
         VALUES (?, ?, ?, ?, ?, ?)
       `);
       
-      // New registrations are 'pending' by default for security, but for this demo let's make them 'active'
-      // so the user can test immediately.
+      // Demo mode: approve registrations immediately to simplify testing UX.
       stmt.run(username, hashedPassword, role, area, organizationName, 'active');
 
       res.status(201).json({ message: 'Đăng ký tài khoản thành công. Bạn có thể đăng nhập ngay.' });

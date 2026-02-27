@@ -61,14 +61,23 @@ export const initDb = () => {
     insert.run('thanhkhe_manager', hashedPassword, 'district_manager', 'Thanh Khê');
     console.log('Database seeded with initial users.');
   } else {
-    // Ensure 'quản trị viên' exists for users who already have a database
+    // Ensure admin aliases exist for users who already have a database.
+    // Use INSERT OR IGNORE to keep migration idempotent and avoid UNIQUE errors.
     const checkUser = db.prepare('SELECT count(*) as count FROM users WHERE username = ?');
-    const adminExists = checkUser.get('quản trị viên') as { count: number };
-    if (adminExists.count === 0) {
-      const insert = db.prepare('INSERT INTO users (username, password, role, area) VALUES (?, ?, ?, ?)');
+    const vnAdminExists = checkUser.get('quản trị viên') as { count: number };
+    const plainAdminExists = checkUser.get('quantrivien') as { count: number };
+
+    if (vnAdminExists.count === 0 || plainAdminExists.count === 0) {
+      const insert = db.prepare('INSERT OR IGNORE INTO users (username, password, role, area) VALUES (?, ?, ?, ?)');
       const hashedPassword = bcrypt.hashSync('password123', 10);
-      insert.run('quantrivien', hashedPassword, 'admin', 'All');
-      insert.run('quản trị viên', hashedPassword, 'admin', 'All');
+
+      if (plainAdminExists.count === 0) {
+        insert.run('quantrivien', hashedPassword, 'admin', 'All');
+      }
+      if (vnAdminExists.count === 0) {
+        insert.run('quản trị viên', hashedPassword, 'admin', 'All');
+      }
+
       console.log('Added Vietnamese admin aliases to existing database.');
     }
   }

@@ -2,11 +2,13 @@
 import { GoogleGenAI, Type } from "@google/genai";
 import { AIAnalysis, GroundingChunk } from '../types';
 
-if (!process.env.API_KEY) {
-  throw new Error("API_KEY environment variable not set");
+const GEMINI_API_KEY = process.env.GEMINI_API_KEY || process.env.API_KEY;
+
+if (!GEMINI_API_KEY) {
+  throw new Error("GEMINI_API_KEY (hoặc API_KEY legacy) environment variable not set");
 }
 
-const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+const ai = new GoogleGenAI({ apiKey: GEMINI_API_KEY });
 
 const responseSchema = {
   type: Type.OBJECT,

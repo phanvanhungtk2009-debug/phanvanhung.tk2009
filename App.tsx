@@ -3,6 +3,7 @@ import React, { useState, useCallback, useEffect } from 'react';
 import * as L from 'leaflet';
 import { analyzeEnvironmentalImage, askAIAboutEnvironment } from './services/geminiService';
 import { saveOfflineReport, getOfflineReports, deleteOfflineReport, compressImage } from './services/offlineService';
+import { apiFetch, getApiErrorMessage, getApiBaseUrl } from './services/apiClient';
 import { EnvironmentalReport, AIAnalysis, ReportStatus, ChatMessage, ToastMessage, EducationalTopic, EnvironmentalPOI } from './types';
 import MainMapView from './components/MainMapView';
 import ReportForm from './components/ReportForm';
@@ -113,7 +114,7 @@ const App: React.FC = () => {
   const fetchReports = async () => {
     if (!isOnline) return;
     try {
-      const response = await fetch('/api/reports');
+      const response = await apiFetch('/api/reports');
       if (response.ok) {
         const data = await response.json();
         const parsedData = data.map((report: any) => ({
@@ -132,8 +133,9 @@ const App: React.FC = () => {
     
     // Setup WebSocket for real-time updates
     if (isOnline) {
-      const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-      const ws = new WebSocket(`${protocol}//${window.location.host}`);
+      const wsBase = getApiBaseUrl() || window.location.origin;
+      const wsEndpoint = wsBase.replace(/^http/, 'ws');
+      const ws = new WebSocket(wsEndpoint);
       
       ws.onmessage = (event) => {
         const data = JSON.parse(event.data);
@@ -192,11 +194,14 @@ const App: React.FC = () => {
 
       // Send to server
       for (const report of offlineReports) {
-        await fetch('/api/reports', {
+        const response = await apiFetch('/api/reports', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(report),
         });
+        if (!response.ok) {
+          throw new Error(await getApiErrorMessage(response, 'Đồng bộ báo cáo offline thất bại'));
+        }
         await deleteOfflineReport(report.id);
       }
 
@@ -336,13 +341,15 @@ const App: React.FC = () => {
 
       } else {
         // Online: Send to API
-        const response = await fetch('/api/reports', {
+        const response = await apiFetch('/api/reports', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(newReport),
         });
 
-        if (!response.ok) throw new Error('Failed to submit report');
+        if (!response.ok) {
+          throw new Error(await getApiErrorMessage(response, 'Failed to submit report'));
+        }
         
         // Tặng điểm cho báo cáo mới
         const pointsAwarded = 10;
@@ -377,7 +384,7 @@ const App: React.FC = () => {
     const newStatus = statusCycle[currentReport.status];
 
     try {
-        const response = await fetch(`/api/reports/${reportId}/status`, {
+        const response = await apiFetch(`/api/reports/${reportId}/status`, {
             method: 'PATCH',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ status: newStatus }),
@@ -393,9 +400,12 @@ const App: React.FC = () => {
               );
               setSelectedReport(prev => prev ? {...prev, status: newStatus} : null);
               addToast('Cập nhật trạng thái báo cáo thành công!');
+        } else {
+            addToast(await getApiErrorMessage(response, 'Lỗi cập nhật trạng thái'), 'error');
         }
     } catch (error) {
-        addToast('Lỗi cập nhật trạng thái', 'error');
+        const apiBase = getApiBaseUrl();
+        addToast(`Lỗi cập nhật trạng thái${apiBase ? ` (API: ${apiBase})` : ''}`, 'error');
     }
   };
 

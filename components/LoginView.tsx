@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { LogoIcon } from './icons/LogoIcon';
+import { apiFetch, getApiErrorMessage } from '../services/apiClient';
 
 interface LoginViewProps {
   onLogin: (user: any) => void;
@@ -134,7 +135,7 @@ const LoginView: React.FC<LoginViewProps> = ({ onLogin }) => {
       : { username, password };
 
     try {
-      const response = await fetch(endpoint, {
+      const response = await apiFetch(endpoint, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(body),
@@ -154,7 +155,7 @@ const LoginView: React.FC<LoginViewProps> = ({ onLogin }) => {
           onLogin(data.user);
         }
       } else {
-        setError(data.message || 'Thao tác thất bại');
+        setError(await getApiErrorMessage(response, data.message || 'Thao tác thất bại'));
       }
     } catch (err) {
       setError('Lỗi kết nối server');

@@ -3,6 +3,7 @@ import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, Responsive
 import { MapContainer, TileLayer, CircleMarker, Popup } from 'react-leaflet';
 import 'leaflet/dist/leaflet.css';
 import { EnvironmentalReport } from '../types';
+import { apiFetch, getApiBaseUrl } from '../services/apiClient';
 
 interface DashboardStats {
   total: number;
@@ -26,8 +27,8 @@ const DashboardView: React.FC<DashboardViewProps> = ({ user }) => {
   const fetchData = async () => {
     try {
       const [statsRes, reportsRes] = await Promise.all([
-        fetch('/api/stats').then(res => res.json()),
-        fetch('/api/reports').then(res => res.json())
+        apiFetch('/api/stats').then(res => res.json()),
+        apiFetch('/api/reports').then(res => res.json())
       ]);
       
       let filteredReports = reportsRes;
@@ -86,8 +87,9 @@ const DashboardView: React.FC<DashboardViewProps> = ({ user }) => {
     fetchData();
     
     // Setup WebSocket for real-time updates
-    const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-    const ws = new WebSocket(`${protocol}//${window.location.host}`);
+    const wsBase = getApiBaseUrl() || window.location.origin;
+    const wsEndpoint = wsBase.replace(/^http/, 'ws');
+    const ws = new WebSocket(wsEndpoint);
     
     ws.onmessage = (event) => {
       const data = JSON.parse(event.data);
