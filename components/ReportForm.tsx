@@ -15,14 +15,15 @@ interface ReportFormProps {
   isLoading: boolean;
   error: string | null;
   isOnline: boolean;
+  initialCoords?: { latitude: number; longitude: number } | null;
 }
 
-const ReportForm: React.FC<ReportFormProps> = ({ onSubmit, onCancel, isLoading, error, isOnline }) => {
+const ReportForm: React.FC<ReportFormProps> = ({ onSubmit, onCancel, isLoading, error, isOnline, initialCoords }) => {
   const [mediaFile, setMediaFile] = useState<File | null>(null);
   const [mediaUrl, setMediaUrl] = useState<string | null>(null);
   const [mediaType, setMediaType] = useState<'image' | 'video' | null>(null);
   const [description, setDescription] = useState('');
-  const [coords, setCoords] = useState<{ latitude: number; longitude: number } | null>(null);
+  const [coords, setCoords] = useState<{ latitude: number; longitude: number } | null>(initialCoords || null);
   const [accuracy, setAccuracy] = useState<number | null>(null);
   const [locationError, setLocationError] = useState<string | null>(null);
   const [isGettingLocation, setIsGettingLocation] = useState(false);
@@ -83,7 +84,9 @@ const ReportForm: React.FC<ReportFormProps> = ({ onSubmit, onCancel, isLoading, 
   };
   
   useEffect(() => {
-    fetchLocation();
+    if (!initialCoords) {
+      fetchLocation();
+    }
     return () => {
       if (highlightTimeoutRef.current) {
         clearTimeout(highlightTimeoutRef.current);
@@ -356,7 +359,11 @@ const ReportForm: React.FC<ReportFormProps> = ({ onSubmit, onCancel, isLoading, 
                 disabled={!mediaFile || !coords || isLoading}
                 className={`px-8 py-3 font-bold rounded-xl shadow-lg transition-all duration-300 hover:scale-105 hover:shadow-xl active:scale-95 disabled:bg-none disabled:bg-slate-300 disabled:shadow-none disabled:cursor-not-allowed disabled:transform-none ${isOnline ? 'bg-gradient-to-r from-teal-500 to-teal-600 text-white shadow-teal-200 hover:shadow-teal-300' : 'bg-amber-500 text-white shadow-amber-200 hover:shadow-amber-300'}`}
               >
-                {isLoading ? 'Đang xử lý...' : (isOnline ? 'Gửi Báo Cáo' : 'Lưu Offline')}
+                {isLoading ? 'Đang xử lý...' : (
+                  isAnalyzing 
+                    ? (isOnline ? 'Gửi Ngay (Bỏ qua AI)' : 'Lưu Ngay') 
+                    : (isOnline ? 'Gửi Báo Cáo' : 'Lưu Offline')
+                )}
               </button>
             </div>
         </form>

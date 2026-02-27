@@ -76,9 +76,10 @@ interface EnvironmentalMapViewProps {
   userLocation: { latitude: number; longitude: number } | null;
   onNavigateHome: () => void;
   onSelectReport: (report: EnvironmentalReport) => void;
+  onStartReport: () => void;
 }
 
-const EnvironmentalMapView: React.FC<EnvironmentalMapViewProps> = ({ reports, pois, userLocation, onNavigateHome, onSelectReport }) => {
+const EnvironmentalMapView: React.FC<EnvironmentalMapViewProps> = ({ reports, pois, userLocation, onNavigateHome, onSelectReport, onStartReport }) => {
   const mapContainerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<L.Map | null>(null);
   const reportsLayerRef = useRef<L.LayerGroup | null>(null);
@@ -271,13 +272,23 @@ const EnvironmentalMapView: React.FC<EnvironmentalMapViewProps> = ({ reports, po
       <div ref={mapContainerRef} className="w-full h-full z-0" />
       
       {/* Top Left - Home */}
-      <div className="absolute top-4 left-4 z-10">
+      <div className="absolute top-4 left-4 z-10 flex flex-col space-y-2">
          <button
             onClick={onNavigateHome}
             className="bg-white/90 backdrop-blur-sm text-gray-700 rounded-full p-3 shadow-lg hover:bg-white transition-all focus:outline-none focus:ring-2 focus:ring-teal-500"
             aria-label="Về trang chủ"
           >
             <HomeIcon className="w-6 h-6" />
+          </button>
+          
+          <button
+            onClick={onStartReport}
+            className="bg-teal-600 text-white rounded-full p-3 shadow-lg hover:bg-teal-700 transition-all focus:outline-none focus:ring-2 focus:ring-teal-500 animate-bounce flex items-center space-x-2 pr-4"
+            title="Báo cáo nhanh tại đây"
+            aria-label="Báo cáo nhanh tại đây"
+          >
+            <MapPinIcon className="w-6 h-6" />
+            <span className="text-xs font-bold">Báo cáo nhanh</span>
           </button>
       </div>
 

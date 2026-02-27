@@ -353,15 +353,15 @@ const MainMapView: React.FC<MainMapViewProps> = ({ reports, userLocation, onSele
         </div>
       </div>
       
-       {/* Nút thêm báo cáo - Di chuyển ra giữa để tránh xung đột với nút AI ở góc phải */}
-       <div className="absolute bottom-6 left-1/2 transform -translate-x-1/2 z-10">
+       <div className="absolute bottom-6 left-1/2 transform -translate-x-1/2 z-10 flex flex-col items-center">
            <button
               onClick={onStartNewReport}
-              className="bg-teal-600 text-white rounded-full p-5 shadow-2xl hover:bg-teal-700 transition-transform transform hover:scale-110 focus:outline-none focus:ring-4 focus:ring-teal-500/50 flex items-center justify-center"
+              className="bg-teal-600 text-white rounded-full p-5 shadow-2xl hover:bg-teal-700 transition-transform transform hover:scale-110 focus:outline-none focus:ring-4 focus:ring-teal-500/50 flex items-center justify-center mb-2"
               aria-label="Báo cáo sự cố mới"
             >
               <AddIcon className="w-8 h-8" />
             </button>
+            <span className="bg-white/80 backdrop-blur-sm px-3 py-1 rounded-full text-[10px] font-bold text-teal-700 shadow-sm border border-teal-100 uppercase tracking-wider">Báo cáo nhanh</span>
        </div>
     </div>
   );

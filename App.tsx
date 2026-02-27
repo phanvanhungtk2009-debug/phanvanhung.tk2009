@@ -64,7 +64,7 @@ const environmentalPOIs: EnvironmentalPOI[] = [
 const App: React.FC = () => {
   const [reports, setReports] = useState<EnvironmentalReport[]>([]);
   const [view, setView] = useState<'home' | 'map' | 'form' | 'thankYou' | 'environmentalMap' | 'sos' | 'login' | 'dashboard'>('home');
-  const [previousView, setPreviousView] = useState<'home' | 'map'>('home');
+  const [previousView, setPreviousView] = useState<'home' | 'map' | 'environmentalMap'>('home');
   const [selectedReport, setSelectedReport] = useState<EnvironmentalReport | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
@@ -292,7 +292,7 @@ const App: React.FC = () => {
     setToasts(prevToasts => prevToasts.filter(toast => toast.id !== id));
   }, []);
 
-  const handleStartNewReport = (currentView: 'home' | 'map') => {
+  const handleStartNewReport = (currentView: 'home' | 'map' | 'environmentalMap') => {
     setPreviousView(currentView);
     setView('form');
   };
@@ -505,6 +505,7 @@ const App: React.FC = () => {
                   isLoading={isLoading}
                   error={error}
                   isOnline={isOnline}
+                  initialCoords={userLocation}
                 />;
       case 'thankYou':
         return <ThankYouView
@@ -519,6 +520,7 @@ const App: React.FC = () => {
                   userLocation={userLocation}
                   onNavigateHome={() => setView('home')}
                   onSelectReport={handleSelectReport}
+                  onStartReport={() => handleStartNewReport('environmentalMap')}
                 />;
       case 'sos':
         return <SOSView onClose={() => setView('home')} />;
