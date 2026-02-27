@@ -64,6 +64,15 @@ export const deleteOfflineReport = async (id: string): Promise<void> => {
 
 export const compressImage = (file: File, maxWidth: number = 800, quality: number = 0.7): Promise<string> => {
   return new Promise((resolve, reject) => {
+    // Nếu không phải là ảnh, trả về data URL gốc (không nén)
+    if (!file.type.startsWith('image/')) {
+      const reader = new FileReader();
+      reader.readAsDataURL(file);
+      reader.onload = (event) => resolve(event.target?.result as string);
+      reader.onerror = (error) => reject(error);
+      return;
+    }
+
     const reader = new FileReader();
     reader.readAsDataURL(file);
     reader.onload = (event) => {
@@ -88,7 +97,11 @@ export const compressImage = (file: File, maxWidth: number = 800, quality: numbe
         const dataUrl = canvas.toDataURL('image/jpeg', quality);
         resolve(dataUrl);
       };
-      img.onerror = (error) => reject(error);
+      img.onerror = (error) => {
+        console.warn("Image compression failed, using original file:", error);
+        // Fallback: trả về data URL gốc nếu nén lỗi
+        resolve(event.target?.result as string);
+      };
     };
     reader.onerror = (error) => reject(error);
   });

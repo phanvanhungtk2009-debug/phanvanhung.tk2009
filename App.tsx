@@ -192,12 +192,21 @@ const App: React.FC = () => {
 
       // Send to server
       for (const report of offlineReports) {
-        await fetch('/api/reports', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(report),
-        });
-        await deleteOfflineReport(report.id);
+        try {
+          const response = await fetch('/api/reports', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(report),
+          });
+          
+          if (response.ok) {
+            await deleteOfflineReport(report.id);
+          } else {
+            console.error(`Failed to sync report ${report.id}: ${response.statusText}`);
+          }
+        } catch (err) {
+          console.error(`Error syncing report ${report.id}:`, err);
+        }
       }
 
       setPendingReportsCount(0);
@@ -311,7 +320,7 @@ const App: React.FC = () => {
       const compressedMediaUrl = await compressImage(mediaFile);
       
       const newReport: EnvironmentalReport = {
-        id: new Date().toISOString(),
+        id: `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
         mediaUrl: compressedMediaUrl,
         mediaType: mediaFile.type.startsWith('video') ? 'video' : 'image',
         latitude: coords.latitude,
@@ -342,7 +351,10 @@ const App: React.FC = () => {
             body: JSON.stringify(newReport),
         });
 
-        if (!response.ok) throw new Error('Failed to submit report');
+        if (!response.ok) {
+          const errorData = await response.json().catch(() => ({}));
+          throw new Error(errorData.message || `Server returned ${response.status}: ${response.statusText}`);
+        }
         
         // Tặng điểm cho báo cáo mới
         const pointsAwarded = 10;
