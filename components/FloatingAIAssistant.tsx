@@ -86,12 +86,12 @@ const FloatingAIAssistant: React.FC<FloatingAIAssistantProps> = ({ isOpen, onTog
                                 {messages.map((msg, index) => (
                                     <div key={index} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
                                         <div className={`flex flex-col ${msg.role === 'user' ? 'items-end' : 'items-start'} max-w-[85%]`}>
-                                            <div className={`px-4 py-3 shadow-sm text-sm leading-relaxed ${
+                                            <div className={`px-4 py-3 shadow-sm text-sm leading-relaxed font-serif ${
                                                 msg.role === 'user' 
                                                 ? 'bg-teal-600 text-white rounded-2xl rounded-tr-sm' 
                                                 : 'bg-white text-slate-700 border border-slate-200/60 rounded-2xl rounded-tl-sm'
                                             }`}>
-                                                <p className="whitespace-pre-wrap">{msg.content}</p>
+                                                <p className="whitespace-pre-wrap italic">{msg.content}</p>
                                             </div>
                                             
                                             {msg.groundingChunks && msg.groundingChunks.length > 0 && (
