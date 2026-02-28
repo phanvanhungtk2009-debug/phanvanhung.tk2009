@@ -29,7 +29,8 @@ const poiDetails: Record<POIType, { name: string; color: string }> = {
 // FIX: Changed JSX.Element to React.ReactElement to resolve "Cannot find namespace 'JSX'" error.
 const filterCategories: { name: string; icon: React.ReactElement; filterType: AIAnalysis['issueType'] | 'Tất cả' | 'Nhu yếu phẩm' }[] = [
     { name: 'Tất cả', icon: <AllIssuesIcon className="w-5 h-5" />, filterType: 'Tất cả' },
-    { name: 'Cứu trợ', icon: <LifebuoyIcon className="w-5 h-5" />, filterType: 'Nhu yếu phẩm' }, // New filter
+    { name: 'Mới/Chờ', icon: <MapPinIcon className="w-5 h-5" />, filterType: 'Đang chờ phân tích' },
+    { name: 'Cứu trợ', icon: <LifebuoyIcon className="w-5 h-5" />, filterType: 'Nhu yếu phẩm' },
     { name: 'Rác thải', icon: <TrashIcon className="w-5 h-5" />, filterType: 'Xả rác không đúng nơi quy định' },
     { name: 'Sạt lở', icon: <LandslideIcon className="w-5 h-5" />, filterType: 'Sạt lở đất' },
     { name: 'Ngập lụt', icon: <FloodIcon className="w-5 h-5" />, filterType: 'Ngập lụt' },

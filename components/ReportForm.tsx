@@ -105,105 +105,37 @@ const ReportForm: React.FC<ReportFormProps> = ({ onSubmit, onCancel, isLoading, 
     setMediaType(file.type.startsWith('video') ? 'video' : 'image');
   };
   
-  // Tự động phân tích khi có file media
+  // Tự động phân tích khi có file media (ĐÃ VÔ HIỆU HÓA THEO YÊU CẦU NGƯỜI DÙNG)
   useEffect(() => {
     const handleMediaAnalysis = async () => {
       if (!mediaFile) return;
 
-      setIsAnalyzing(true);
-      setAiAnalysis(null);
-      setAnalysisMessage(null);
-
-      // Nếu offline, bỏ qua phân tích AI và cho phép nhập thủ công (hoặc giả lập)
-      // Tuy nhiên, yêu cầu là "Ảnh và dữ liệu... được lưu tạm thời".
-      // Nếu không có mạng, không thể gọi Gemini API.
-      // Chúng ta sẽ cho phép người dùng nhập mô tả và lưu lại, AI Analysis sẽ là null hoặc placeholder.
-      // Nhưng ReportForm yêu cầu aiAnalysis để submit.
-      // Ta sẽ xử lý logic này: Nếu offline, tạo một aiAnalysis giả định hoặc cho phép null.
-      // Nhưng để đơn giản và tuân thủ type, ta sẽ mock AI response nếu offline.
+      // Mặc định tạo kết quả phân tích "Đang chờ" để không chặn việc gửi báo cáo
+      const defaultAnalysis: AIAnalysis = {
+          isIssuePresent: true,
+          issueType: "Đang chờ phân tích",
+          description: description || "Báo cáo sự cố môi trường.",
+          priority: "Trung bình",
+          solution: "Đang chờ cán bộ kiểm tra.",
+      };
+      setAiAnalysis(defaultAnalysis);
       
-      if (!isOnline) {
-          // Mock AI Analysis for Offline Mode
-          const mockAnalysis: AIAnalysis = {
-              isIssuePresent: true,
-              issueType: "Đang chờ phân tích",
-              description: "Báo cáo được tạo khi offline. AI sẽ phân tích lại sau (nếu cần).",
-              priority: "Trung bình",
-              solution: "Đang chờ xử lý",
-          };
-          setAiAnalysis(mockAnalysis);
-          return;
-      }
-
+      /* 
+      // Vô hiệu hóa phần gọi AI Gemini để tránh lỗi quota và tăng tốc độ
+      setIsAnalyzing(true);
       try {
-        let base64String: string;
-        let mimeType: string;
-
-        if (mediaFile.type.startsWith('image')) {
-          base64String = await new Promise((resolve, reject) => {
-            const reader = new FileReader();
-            reader.readAsDataURL(mediaFile);
-            reader.onload = () => resolve((reader.result as string).split(',')[1]);
-            reader.onerror = (error) => reject(error);
-          });
-          mimeType = mediaFile.type;
-        } else if (mediaFile.type.startsWith('video')) {
-          base64String = await new Promise((resolve, reject) => {
-            const video = document.createElement('video');
-            video.src = URL.createObjectURL(mediaFile);
-            video.onloadeddata = () => {
-              video.currentTime = 1; // Lấy frame ở giây thứ 1
-            };
-            video.onseeked = () => {
-              const canvas = document.createElement('canvas');
-              canvas.width = video.videoWidth;
-              canvas.height = video.videoHeight;
-              const ctx = canvas.getContext('2d');
-              if (!ctx) return reject('Không thể tạo canvas context');
-              ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-              resolve(canvas.toDataURL('image/jpeg').split(',')[1]);
-              URL.revokeObjectURL(video.src);
-            };
-            video.onerror = (error) => {
-              reject(error);
-              URL.revokeObjectURL(video.src);
-            }
-          });
-          mimeType = 'image/jpeg';
-        } else {
-            throw new Error("Định dạng tệp không được hỗ trợ.");
-        }
-        
-        const result = await analyzeEnvironmentalImage(base64String, mimeType);
-              
-        if (result.isIssuePresent) {
-          setAiAnalysis(result);
-        } else {
-          setAiAnalysis({
-            issueType: 'Khác',
-            description: result.description || 'AI không tự động nhận diện được sự cố, nhưng bạn vẫn có thể gửi báo cáo này.',
-            priority: 'Trung bình',
-            solution: 'Cần cán bộ kiểm tra thực tế.',
-            isIssuePresent: true
-          });
-          setAnalysisMessage("AI không tự động nhận diện được sự cố cụ thể. Bạn vẫn có thể tiếp tục gửi báo cáo nếu thấy cần thiết.");
-        }
-
+        // ... logic gọi AI cũ ...
       } catch (err) {
-          const errorMessage = err instanceof Error ? err.message : 'Lỗi không xác định.';
-          if (errorMessage.includes("QUOTA_EXCEEDED")) {
-            setAnalysisMessage("Hệ thống AI đang quá tải (hết hạn mức). Bạn vẫn có thể tiếp tục gửi báo cáo, chúng tôi sẽ xử lý thủ công.");
-          } else {
-            setAnalysisMessage(`Lỗi phân tích: ${errorMessage}`);
-          }
+        // ... logic xử lý lỗi cũ ...
       } finally {
         setIsAnalyzing(false);
       }
+      */
     };
     
     handleMediaAnalysis();
 
-  }, [mediaFile, isOnline]);
+  }, [mediaFile]); // Chỉ chạy khi mediaFile thay đổi
 
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -250,35 +182,23 @@ const ReportForm: React.FC<ReportFormProps> = ({ onSubmit, onCancel, isLoading, 
             <ImageUploader onImageChange={handleMediaChange} imageUrl={mediaUrl} mediaType={mediaType} />
           </div>
           
-           {/* Analysis Result Area */}
-           <div className="min-h-[60px] transition-all duration-500">
-                {isAnalyzing && (
-                    <div className="bg-slate-50 rounded-2xl p-6 border border-slate-100">
-                         <Loader />
-                    </div>
-                )}
-                
-                {analysisMessage && (
-                    <div className="flex items-start gap-4 text-amber-800 bg-amber-50 p-5 rounded-2xl border border-amber-100 shadow-sm animate-fade-in">
-                        <XCircleIcon className="w-6 h-6 flex-shrink-0 text-amber-600 mt-0.5" />
-                        <div>
-                            <p className="font-bold text-amber-900">Không thể xử lý</p>
-                            <p className="text-sm mt-1">{analysisMessage}</p>
-                        </div>
-                    </div>
-                )}
-                
+           {/* Analysis Result Area (Simplified for User Request) */}
+           <div className="min-h-[20px] transition-all duration-500">
                 {aiAnalysis && (
                     <div className="space-y-4 animate-fade-in-up">
                          <div className={`flex items-center gap-3 p-4 rounded-xl border ${isOnline ? 'text-green-800 bg-green-50 border-green-100' : 'text-amber-800 bg-amber-50 border-amber-100'}`}>
-                            {isOnline ? <CheckCircleIcon className="w-6 h-6 flex-shrink-0 text-green-600" /> : <div className="w-6 h-6 flex-shrink-0 text-amber-600 font-bold">!</div>}
+                            {isOnline ? <CheckCircleIcon className="w-6 h-6 flex-shrink-0 text-green-600" /> : <div className="w-6 h-6 flex-shrink-0 text-amber-600 font-bold text-xl">!</div>}
                             <div>
                                 <p className={`font-bold ${isOnline ? 'text-green-900' : 'text-amber-900'}`}>
-                                    {isOnline ? 'Xác thực thành công' : 'Đang ở chế độ Offline - AI tạm thời không khả dụng'}
+                                    {isOnline ? 'Dữ liệu đã sẵn sàng' : 'Đang ở chế độ Offline - Dữ liệu sẽ được lưu tạm thời'}
                                 </p>
                             </div>
                         </div>
-                        <ReportCard analysis={aiAnalysis} />
+                        {/* Hiển thị tóm tắt báo cáo thay vì ReportCard đầy đủ của AI */}
+                        <div className="bg-slate-50 p-4 rounded-xl border border-slate-200">
+                            <p className="text-sm font-bold text-slate-700 mb-1">Trạng thái phân tích:</p>
+                            <p className="text-sm text-slate-600 italic">Hệ thống sẽ phân tích hình ảnh sau khi cán bộ tiếp nhận.</p>
+                        </div>
                     </div>
                 )}
             </div>
@@ -359,11 +279,7 @@ const ReportForm: React.FC<ReportFormProps> = ({ onSubmit, onCancel, isLoading, 
                 disabled={!mediaFile || !coords || isLoading}
                 className={`px-8 py-3 font-bold rounded-xl shadow-lg transition-all duration-300 hover:scale-105 hover:shadow-xl active:scale-95 disabled:bg-none disabled:bg-slate-300 disabled:shadow-none disabled:cursor-not-allowed disabled:transform-none ${isOnline ? 'bg-gradient-to-r from-teal-500 to-teal-600 text-white shadow-teal-200 hover:shadow-teal-300' : 'bg-amber-500 text-white shadow-amber-200 hover:shadow-amber-300'}`}
               >
-                {isLoading ? 'Đang xử lý...' : (
-                  isAnalyzing 
-                    ? (isOnline ? 'Gửi Ngay (Bỏ qua AI)' : 'Lưu Ngay') 
-                    : (isOnline ? 'Gửi Báo Cáo' : 'Lưu Offline')
-                )}
+                {isLoading ? 'Đang xử lý...' : (isOnline ? 'Gửi Báo Cáo' : 'Lưu Offline')}
               </button>
             </div>
         </form>
