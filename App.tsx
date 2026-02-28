@@ -135,18 +135,34 @@ const App: React.FC = () => {
       const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
       const ws = new WebSocket(`${protocol}//${window.location.host}`);
       
+      ws.onopen = () => {
+        console.log('WebSocket connection established');
+      };
+
       ws.onmessage = (event) => {
-        const data = JSON.parse(event.data);
-        if (data.type === 'NEW_REPORT') {
-          addToast(`Có báo cáo mới tại ${data.report.area}`, 'success');
-          const newReport = { ...data.report, timestamp: new Date(data.report.timestamp) };
-          setReports(prev => [newReport, ...prev]);
-        } else if (data.type === 'REPORT_UPDATED') {
-          setReports(prev => prev.map(r => r.id === data.id ? { ...r, status: data.status } : r));
+        try {
+          const data = JSON.parse(event.data);
+          if (data.type === 'NEW_REPORT') {
+            addToast(`Có báo cáo mới tại ${data.report.area}`, 'success');
+            const newReport = { ...data.report, timestamp: new Date(data.report.timestamp) };
+            setReports(prev => [newReport, ...prev]);
+          } else if (data.type === 'REPORT_UPDATED') {
+            setReports(prev => prev.map(r => r.id === data.id ? { ...r, status: data.status } : r));
+          }
+        } catch (err) {
+          console.error('Error parsing WebSocket message:', err);
         }
       };
 
-      return () => ws.close();
+      ws.onerror = (error) => {
+        console.warn('WebSocket error (this is normal in some preview environments):', error);
+      };
+
+      return () => {
+        if (ws.readyState === WebSocket.OPEN || ws.readyState === WebSocket.CONNECTING) {
+          ws.close();
+        }
+      };
     }
   }, [isOnline]);
 
