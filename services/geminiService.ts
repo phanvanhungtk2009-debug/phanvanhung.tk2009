@@ -44,58 +44,72 @@ const responseSchema = {
 
 // Hàm này bây giờ xác thực, phân tích và đề xuất giải pháp trong một lần gọi
 export const analyzeEnvironmentalImage = async (base64Image: string, mimeType: string): Promise<AIAnalysis> => {
-  try {
-    const imagePart = {
-      inlineData: {
-        data: base64Image,
-        mimeType: mimeType,
-      },
-    };
+  const callGemini = async (retryCount = 0): Promise<AIAnalysis> => {
+    try {
+      const imagePart = {
+        inlineData: {
+          data: base64Image,
+          mimeType: mimeType,
+        },
+      };
 
-    const textPart = {
-      text: `Bạn là một chuyên gia giám sát môi trường và cứu hộ thiên tai bằng AI cho thành phố Đà Nẵng, Việt Nam. Phân tích hình ảnh này và trả về một đối tượng JSON.
-      1.  Đầu tiên, xác định xem hình ảnh có chứa một sự cố môi trường thực sự như rác thải, ngập lụt, hoặc sạt lở đất không ('isIssuePresent').
-      2.  Nếu có sự cố, hãy phân tích chi tiết:
-          - 'issueType': Xác định loại sự cố.
-          - 'description': Mô tả chi tiết sự cố, bao gồm ước lượng khối lượng (nếu là rác), độ sâu (nếu là ngập), hoặc quy mô (nếu là sạt lở).
-          - 'priority': Phân loại mức độ ưu tiên ('Cao', 'Trung bình', 'Thấp') dựa trên mức độ nguy hiểm và ảnh hưởng.
-          - 'solution': Đề xuất giải pháp cụ thể, bao gồm cả hành động tức thời cho người dân và giải pháp lâu dài cho chính quyền.
-      3.  ĐẶC BIỆT (QUAN TRỌNG): Nếu phát hiện thiên tai như Ngập lụt hoặc Sạt lở đất:
-          - Nếu là cảnh báo sự cố: Cung cấp danh sách 'recommendedSupplies' gồm các nhu yếu phẩm cần thiết (thực phẩm khô, nước sạch, thuốc men...).
-          - Nếu hình ảnh là CẢNH NGƯỜI DÂN CUNG CẤP ĐỒ CỨU TRỢ (điểm tập kết, thuyền cứu trợ): Hãy liệt kê các vật phẩm bạn nhìn thấy vào 'recommendedSupplies' để chúng tôi ghim điểm này lên bản đồ cứu trợ.
-      4.  Nếu không có sự cố, hãy trả về 'isIssuePresent: false' và điền các trường còn lại với giá trị mặc định phù hợp (ví dụ: issueType: 'Không có sự cố').
-      Tuân thủ nghiêm ngặt schema được cung cấp.`
-    };
-    
-    const response = await ai.models.generateContent({
-      model: 'gemini-2.5-flash-latest',
-      contents: { parts: [imagePart, textPart] },
-      config: {
-        responseMimeType: "application/json",
-        responseSchema: responseSchema,
+      const textPart = {
+        text: `Bạn là một chuyên gia giám sát môi trường và cứu hộ thiên tai bằng AI cho thành phố Đà Nẵng, Việt Nam. Phân tích hình ảnh này và trả về một đối tượng JSON.
+        1.  Đầu tiên, xác định xem hình ảnh có chứa một sự cố môi trường thực sự như rác thải, ngập lụt, hoặc sạt lở đất không ('isIssuePresent').
+        2.  Nếu có sự cố, hãy phân tích chi tiết:
+            - 'issueType': Xác định loại sự cố.
+            - 'description': Mô tả chi tiết sự cố, bao gồm ước lượng khối lượng (nếu là rác), độ sâu (nếu là ngập), hoặc quy mô (nếu là sạt lở).
+            - 'priority': Phân loại mức độ ưu tiên ('Cao', 'Trung bình', 'Thấp') dựa trên mức độ nguy hiểm và ảnh hưởng.
+            - 'solution': Đề xuất giải pháp cụ thể, bao gồm cả hành động tức thời cho người dân và giải pháp lâu dài cho chính quyền.
+        3.  ĐẶC BIỆT (QUAN TRỌNG): Nếu phát hiện thiên tai như Ngập lụt hoặc Sạt lở đất:
+            - Nếu là cảnh báo sự cố: Cung cấp danh sách 'recommendedSupplies' gồm các nhu yếu phẩm cần thiết (thực phẩm khô, nước sạch, thuốc men...).
+            - Nếu hình ảnh là CẢNH NGƯỜI DÂN CUNG CẤP ĐỒ CỨU TRỢ (điểm tập kết, thuyền cứu trợ): Hãy liệt kê các vật phẩm bạn nhìn thấy vào 'recommendedSupplies' để chúng tôi ghim điểm này lên bản đồ cứu trợ.
+        4.  Nếu không có sự cố, hãy trả về 'isIssuePresent: false' và điền các trường còn lại với giá trị mặc định phù hợp (ví dụ: issueType: 'Không có sự cố').
+        Tuân thủ nghiêm ngặt schema được cung cấp.`
+      };
+      
+      const response = await ai.models.generateContent({
+        model: 'gemini-2.5-flash',
+        contents: { parts: [imagePart, textPart] },
+        config: {
+          responseMimeType: "application/json",
+          responseSchema: responseSchema,
+        }
+      });
+      
+      const jsonString = response.text;
+      if (!jsonString) {
+          throw new Error("Empty response from AI");
       }
-    });
-    
-    const jsonString = response.text;
-    const analysisResult = JSON.parse(jsonString) as AIAnalysis;
-    
-    if (analysisResult.isIssuePresent === undefined || !analysisResult.issueType || !analysisResult.description || !analysisResult.priority || !analysisResult.solution) {
-      throw new Error("Phản hồi từ AI thiếu thông tin bắt buộc.");
-    }
+      const analysisResult = JSON.parse(jsonString) as AIAnalysis;
+      
+      if (analysisResult.isIssuePresent === undefined || !analysisResult.issueType || !analysisResult.description || !analysisResult.priority || !analysisResult.solution) {
+        throw new Error("Phản hồi từ AI thiếu thông tin bắt buộc.");
+      }
 
-    return analysisResult;
+      return analysisResult;
 
-  } catch (error: any) {
-    console.error("Lỗi khi gọi API Gemini để phân tích hình ảnh:", error);
-    
-    // Kiểm tra lỗi quota (429 RESOURCE_EXHAUSTED)
-    const errorString = JSON.stringify(error);
-    if (errorString.includes("429") || errorString.includes("RESOURCE_EXHAUSTED")) {
-      throw new Error("QUOTA_EXCEEDED: Hệ thống AI đang quá tải hoặc hết hạn mức. Bạn vẫn có thể gửi báo cáo trực tiếp mà không cần AI phân tích.");
+    } catch (error: any) {
+      console.error(`Lỗi khi gọi API Gemini (lần thử ${retryCount + 1}):`, error);
+      
+      const errorString = JSON.stringify(error);
+      
+      // Retry on 500 or 503 errors, up to 2 times
+      if ((errorString.includes("500") || errorString.includes("503") || errorString.includes("Internal Server Error")) && retryCount < 2) {
+          console.log(`Retrying Gemini API call... (${retryCount + 1}/2)`);
+          await new Promise(resolve => setTimeout(resolve, 1000 * (retryCount + 1))); // Exponential backoff
+          return callGemini(retryCount + 1);
+      }
+
+      if (errorString.includes("429") || errorString.includes("RESOURCE_EXHAUSTED")) {
+        throw new Error("QUOTA_EXCEEDED: Hệ thống AI đang quá tải hoặc hết hạn mức. Bạn vẫn có thể gửi báo cáo trực tiếp mà không cần AI phân tích.");
+      }
+      
+      throw new Error("Không thể phân tích hình ảnh. Vui lòng thử lại sau.");
     }
-    
-    throw new Error("Không thể phân tích hình ảnh. Vui lòng thử lại sau.");
-  }
+  };
+
+  return callGemini();
 };
 
 
