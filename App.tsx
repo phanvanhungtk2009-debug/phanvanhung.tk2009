@@ -186,6 +186,31 @@ const App: React.FC = () => {
     // Initial check for pending reports
     updatePendingReportsCount();
 
+    // Fetch approximate location via IP immediately on load (No permission needed)
+    const fetchApproximateLocation = async () => {
+      try {
+        // Only fetch if we don't have a precise location yet
+        if (!userLocation) {
+            const response = await fetch('https://ipapi.co/json/');
+            if (response.ok) {
+                const data = await response.json();
+                if (data.latitude && data.longitude) {
+                    // Check if the location is within reasonable bounds of Vietnam to avoid VPN weirdness
+                    if (data.latitude > 8 && data.latitude < 24 && data.longitude > 102 && data.longitude < 110) {
+                        setUserLocation({ latitude: data.latitude, longitude: data.longitude });
+                        // Don't show toast for IP location to keep it subtle, 
+                        // or maybe a small info toast: "Đang hiển thị khu vực của bạn (theo IP)"
+                    }
+                }
+            }
+        }
+      } catch (error) {
+        console.warn("Could not fetch IP location:", error);
+      }
+    };
+    
+    fetchApproximateLocation();
+
     return () => {
       window.removeEventListener('online', handleOnline);
       window.removeEventListener('offline', handleOffline);

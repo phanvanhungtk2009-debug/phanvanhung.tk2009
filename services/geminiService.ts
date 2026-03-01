@@ -69,7 +69,7 @@ export const analyzeEnvironmentalImage = async (base64Image: string, mimeType: s
       };
       
       const response = await ai.models.generateContent({
-        model: 'gemini-2.5-flash',
+        model: 'gemini-3-flash-preview',
         contents: { parts: [imagePart, textPart] },
         config: {
           responseMimeType: "application/json",
@@ -130,27 +130,22 @@ Phong cách giao tiếp:
 5. **Hành động:** Luôn kết thúc bằng một lời khuyên nhỏ, thiết thực.
 
 Nguyên tắc chuyên môn:
-- **Hợp nhất Dữ liệu:** Sử dụng Google Search và Google Maps để cập nhật tin tức, thời tiết và bản đồ mới nhất cho toàn bộ khu vực Đà Nẵng và Quảng Nam như một vùng giám sát thống nhất.
+- **Hợp nhất Dữ liệu:** Sử dụng Google Search để cập nhật tin tức, thời tiết và bản đồ mới nhất cho toàn bộ khu vực Đà Nẵng và Quảng Nam như một vùng giám sát thống nhất.
 - **Bản đồ & Vị trí:** Tìm kiếm chính xác các điểm thu gom rác, trạm cứu hộ hoặc khu bảo tồn trên toàn vùng (từ Liên Chiểu đến Núi Thành, từ Hội An đến Tây Giang).
 - **An toàn là trên hết:** Ưu tiên an toàn tính mạng trong các tình huống khẩn cấp trên toàn địa bàn.
 
 Định dạng: Sử dụng Markdown (in đậm, nghiêng) để tạo điểm nhấn.`,
-      tools: [{ googleMaps: {} }, { googleSearch: {} }],
+      tools: [{ googleSearch: {} }],
     };
 
     if (userLocation) {
-      config.toolConfig = {
-        retrievalConfig: {
-          latLng: {
-            latitude: userLocation.latitude,
-            longitude: userLocation.longitude,
-          },
-        },
-      };
+      // Note: retrievalConfig is specifically for Google Maps tool which is not supported in Gemini 3.
+      // We can pass location context in the prompt instead if needed, or rely on search.
+      // For now, we remove toolConfig as it was mainly for maps.
     }
 
      const response = await ai.models.generateContent({
-      model: "gemini-2.5-flash",
+      model: "gemini-3-flash-preview",
       contents: question,
       config,
     });
