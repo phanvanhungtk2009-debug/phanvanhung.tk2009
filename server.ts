@@ -54,6 +54,10 @@ async function startServer() {
       const { username, password } = req.body;
       console.log(`Login attempt for username: ${username}`);
       
+      if (!username || !password) {
+        return res.status(400).json({ message: 'Vui lòng nhập đầy đủ tên đăng nhập và mật khẩu' });
+      }
+      
       const user = db.prepare('SELECT * FROM users WHERE username = ?').get(username) as any;
 
       if (!user) {
@@ -80,6 +84,19 @@ async function startServer() {
     try {
       const { username, password, role, area, organizationName } = req.body;
       
+      // Validate input
+      if (!username || !password || !role) {
+          return res.status(400).json({ 
+              message: 'Thiếu thông tin bắt buộc: username, password, role' 
+          });
+      }
+
+      if (password.length < 8) {
+          return res.status(400).json({ 
+              message: 'Mật khẩu phải có ít nhất 8 ký tự' 
+          });
+      }
+
       // Check if user exists
       const existingUser = db.prepare('SELECT * FROM users WHERE username = ?').get(username);
       if (existingUser) {
