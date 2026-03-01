@@ -367,6 +367,7 @@ const App: React.FC = () => {
         latitude: coords.latitude,
         longitude: coords.longitude,
         userDescription,
+        description: aiAnalysis.description,
         aiAnalysis, // Sử dụng trực tiếp kết quả phân tích
         status: 'Báo cáo mới',
         timestamp: new Date(),
@@ -386,6 +387,14 @@ const App: React.FC = () => {
 
       } else {
         // Online: Send to API
+        // Check payload size for Vercel (approx 4.5MB limit)
+        const payloadSize = JSON.stringify(newReport).length;
+        if (payloadSize > 4 * 1024 * 1024) {
+          addToast('Dữ liệu quá lớn (vượt quá 4MB). Vui lòng chọn ảnh/video nhỏ hơn hoặc nén lại.', 'error');
+          setIsLoading(false);
+          return;
+        }
+
         const response = await fetch('/api/reports', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -394,7 +403,8 @@ const App: React.FC = () => {
 
         if (!response.ok) {
           const errorData = await response.json().catch(() => ({}));
-          throw new Error(errorData.message || `Server returned ${response.status}: ${response.statusText}`);
+          const message = response.status === 413 ? 'Dữ liệu quá lớn cho máy chủ.' : (errorData.message || `Lỗi máy chủ (${response.status})`);
+          throw new Error(message);
         }
         
         // Tặng điểm cho báo cáo mới

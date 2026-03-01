@@ -113,10 +113,26 @@ export const analyzeEnvironmentalImage = async (base64Image: string, mimeType: s
 };
 
 
+import { askOpenAI } from './openaiService';
+
 export const askAIAboutEnvironment = async (
   question: string,
   userLocation: { latitude: number; longitude: number } | null
 ): Promise<{ text: string, groundingChunks?: GroundingChunk[] }> => {
+  // Check for OpenAI API Key first
+  if (process.env.OPENAI_API_KEY) {
+      try {
+          return await askOpenAI(question, userLocation);
+      } catch (error: any) {
+          if (error?.status === 429) {
+              console.warn("OpenAI Quota Exceeded, falling back to Gemini.");
+          } else {
+              console.warn("OpenAI failed, falling back to Gemini:", error);
+          }
+          // Fallback to Gemini if OpenAI fails
+      }
+  }
+
   try {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const config: any = {
@@ -144,28 +160,68 @@ Nguyên tắc chuyên môn:
       // For now, we remove toolConfig as it was mainly for maps.
     }
 
-     const response = await ai.models.generateContent({
-      model: "gemini-3-flash-preview",
-      contents: question,
-      config,
-    });
-    
-    const groundingChunks = response.candidates?.[0]?.groundingMetadata?.groundingChunks as GroundingChunk[] | undefined;
+    try {
+      const response = await ai.models.generateContent({
+        model: "gemini-3-flash-preview",
+        contents: question,
+        config,
+      });
+      
+      const groundingChunks = response.candidates?.[0]?.groundingMetadata?.groundingChunks as GroundingChunk[] | undefined;
 
-    return {
-        text: response.text,
-        groundingChunks: groundingChunks,
-    };
+      return {
+          text: response.text,
+          groundingChunks: groundingChunks,
+      };
+    } catch (error: any) {
+      console.warn("Gemini 3 Flash Preview hit rate limit or error, trying fallback to Gemini 2.5 Flash...", error);
+      
+      try {
+        // Fallback to Gemini 2.5 Flash
+        const response = await ai.models.generateContent({
+          model: "gemini-2.5-flash",
+          contents: question,
+          config,
+        });
+
+        const groundingChunks = response.candidates?.[0]?.groundingMetadata?.groundingChunks as GroundingChunk[] | undefined;
+
+        return {
+            text: response.text,
+            groundingChunks: groundingChunks,
+        };
+      } catch (fallbackError: any) {
+         const errorString = JSON.stringify(fallbackError);
+         if (errorString.includes("429") || errorString.includes("RESOURCE_EXHAUSTED")) {
+             console.warn("All AI models busy or quota exceeded (handled gracefully).");
+         } else {
+             console.error("All AI models failed with unexpected error:", fallbackError);
+         }
+         
+         // Graceful degradation: Return a polite static response instead of throwing
+         return {
+             text: `**Chào bạn, Trợ lý Xanh đây!** 🌱
+             
+Hiện tại hệ thống đang nhận được quá nhiều yêu cầu nên tôi bị "quá tải" một chút. Thành thật xin lỗi bạn vì sự bất tiện này! 
+
+Trong lúc chờ tôi hồi phục năng lượng, bạn có thể:
+*   Gửi báo cáo sự cố trực tiếp qua nút **"Gửi báo cáo"**.
+*   Tham khảo các thông tin đã có trên bản đồ.
+
+Tôi sẽ sớm quay lại ngay thôi! Cảm ơn bạn đã chung tay bảo vệ Đà Nẵng - Quảng Nam. 💚`,
+             groundingChunks: []
+         };
+      }
+    }
 
   } catch (error: any) {
-    console.error("Lỗi khi gọi API Gemini để trò chuyện:", error);
-    
-    const errorString = JSON.stringify(error);
-    if (errorString.includes("429") || errorString.includes("RESOURCE_EXHAUSTED")) {
-      throw new Error("Hệ thống AI đang bận (hết hạn mức). Vui lòng quay lại sau vài phút.");
-    }
-    
-    throw new Error("Lỗi kết nối với trợ lý AI.");
+    // This outer catch block might not be reached due to the inner catch handling, 
+    // but kept for safety if setup code fails.
+    console.error("Critical error in AI service:", error);
+    return {
+        text: "Xin lỗi, tôi đang gặp sự cố kết nối. Vui lòng thử lại sau ít phút.",
+        groundingChunks: []
+    };
   }
 }
 

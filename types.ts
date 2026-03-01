@@ -15,14 +15,16 @@ export interface AIAnalysis {
 
 export interface EnvironmentalReport {
   id: string;
-  mediaUrl: string; // Renamed from imageUrl
+  mediaUrl: string;
   mediaType: 'image' | 'video';
   latitude: number;
   longitude: number;
   userDescription?: string;
+  description: string; // AI Description
   aiAnalysis: AIAnalysis;
   status: ReportStatus;
   timestamp: Date;
+  area?: string;
 }
 
 export interface GroundingChunk {

@@ -50,8 +50,42 @@ const getLifebuoyIconSVG = () => `
   </svg>
 `;
 
+// Hàm tạo SVG cho biểu tượng Khu bảo tồn (Cây)
+const getNatureReserveIconSVG = (color: string) => `
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="${color}" width="36px" height="36px" style="filter: drop-shadow(0 2px 3px rgba(0,0,0,0.4));">
+    <path d="M12 2L15 8H9L12 2Z" />
+    <path d="M12 6L17 14H7L12 6Z" />
+    <path d="M12 11L19 20H5L12 11Z" />
+    <rect x="10.5" y="20" width="3" height="4" fill="#5D4037" />
+  </svg>
+`;
+
+// Actual Recycle Icon
+const getTrueRecycleIconSVG = (color: string) => `
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="${color}" width="36px" height="36px" style="filter: drop-shadow(0 2px 3px rgba(0,0,0,0.4)); background: white; border-radius: 50%; border: 2px solid ${color}; padding: 4px;">
+        <path d="M6.94 14.036c-.233.624-.43 1.2-.606 1.783.96-.697 2.108-1.139 3.418-1.304-2.512-1.302-3.34-3.322-2.812-4.787l1.018-2.823c.528-1.465 2.13-2.22 3.579-1.685l.361.133L10.856 2.23a1.5 1.5 0 0 0-2.121.707l-2.829 7.07a1.5 1.5 0 0 0 .707 2.121l.327.108zM12.652 16.326c1.265.577 2.396.656 3.295.32 1.25-.468 2.314-2.134 2.768-4.665l2.783 1.114c1.385.554 2.067 2.134 1.523 3.528l-.128.327 3.121 1.249a1.5 1.5 0 0 0 1.927-2.008l-2.828-7.07a1.5 1.5 0 0 0-2.008-1.927l-.309.103c-.544-1.394-2.124-2.076-3.528-1.523l-2.783 1.114c.468 2.535-.468 4.665-2.768 4.665-.9 0-1.7-.1-2.3-.32l.235.793zM5.564 7.414l1.868 1.868c1.302.308 2.535.936 3.579 1.868-2.22.528-4.24.22-5.705-1.245l-2.121 2.121c-1.06 1.06-1.06 2.778 0 3.839l.235.235-3.121 1.249a1.5 1.5 0 0 0 1.249 2.768l7.07-2.828a1.5 1.5 0 0 0 2.768-1.249l-.103-.309c1.394.544 2.076 2.124 1.523 3.528l-1.868 1.868c-2.535-.468-4.665.468-4.665 2.768 0 .9.1 1.7.32 2.3l-.793-.235z"></path>
+        <path d="M12 22c5.514 0 10-4.486 10-10S17.514 2 12 2 2 6.486 2 12s4.486 10 10 10zm0-18c4.411 0 8 3.589 8 8s-3.589 8-8 8-8-3.589-8-8 3.589-8 8-8z"></path>
+    </svg>
+`;
+
+// Hàm tạo SVG cho biểu tượng Dọn dẹp (Chổi/Người)
+const getCleanupIconSVG = (color: string) => `
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="${color}" width="36px" height="36px" style="filter: drop-shadow(0 2px 3px rgba(0,0,0,0.4)); background: white; border-radius: 50%; border: 2px solid ${color}; padding: 4px;">
+    <path d="M16 11h-1V3c0-1.1-.9-2-2-2h-2c-1.1 0-2 .9-2 2v8H8c-2.76 0-5 2.24-5 5v2h18v-2c0-2.76-2.24-5-5-5zm-5-8h2v8h-2V3zm-6.8 16c.4-1.6 1.7-2.9 3.3-3.6V19H4.2v-2zm15.6 2H4.2c-.1-.6-.2-1.3-.2-2 0-3.31 2.69-6 6-6h4c3.31 0 6 2.69 6 6 0 .7-.1 1.4-.2 2z" />
+  </svg>
+`;
+
+// Hàm tạo SVG cho biểu tượng Trạm nước
+const getWaterIconSVG = (color: string) => `
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="${color}" width="36px" height="36px" style="filter: drop-shadow(0 2px 3px rgba(0,0,0,0.4)); background: white; border-radius: 50%; border: 2px solid ${color}; padding: 4px;">
+    <path d="M12 2c-5.33 4.55-8 8.48-8 11.8 0 4.98 3.8 8.2 8 8.2s8-3.22 8-8.2c0-3.32-2.67-7.25-8-11.8zm0 18c-3.31 0-6-2.63-6-6.2 0-2.42 1.72-5.35 6-9.15 4.28 3.8 6 6.73 6 9.15 0 3.57-2.69 6.2-6 6.2z" />
+    <path d="M12 12c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2z" opacity=".3" />
+  </svg>
+`;
+
+
 // Hàm tạo biểu tượng Leaflet tùy chỉnh
-const createCustomIcon = (type: 'pin' | 'lifebuoy', color?: string) => {
+const createCustomIcon = (type: 'pin' | 'lifebuoy' | POIType, color?: string) => {
   if (type === 'lifebuoy') {
     return L.divIcon({
       html: getLifebuoyIconSVG(),
@@ -60,6 +94,46 @@ const createCustomIcon = (type: 'pin' | 'lifebuoy', color?: string) => {
       iconAnchor: [20, 20],
       popupAnchor: [0, -25],
     });
+  }
+
+  if (type === 'NatureReserve') {
+      return L.divIcon({
+          html: getNatureReserveIconSVG(color || '#16a34a'),
+          className: '',
+          iconSize: [36, 36],
+          iconAnchor: [18, 18],
+          popupAnchor: [0, -20],
+      });
+  }
+
+  if (type === 'RecyclingCenter') {
+      return L.divIcon({
+          html: getTrueRecycleIconSVG(color || '#2563eb'),
+          className: '',
+          iconSize: [36, 36],
+          iconAnchor: [18, 18],
+          popupAnchor: [0, -20],
+      });
+  }
+
+  if (type === 'CommunityCleanup') {
+      return L.divIcon({
+          html: getCleanupIconSVG(color || '#ea580c'),
+          className: '',
+          iconSize: [36, 36],
+          iconAnchor: [18, 18],
+          popupAnchor: [0, -20],
+      });
+  }
+
+  if (type === 'WaterStation') {
+      return L.divIcon({
+          html: getWaterIconSVG(color || '#0891b2'),
+          className: '',
+          iconSize: [36, 36],
+          iconAnchor: [18, 18],
+          popupAnchor: [0, -20],
+      });
   }
   
   return L.divIcon({
@@ -209,7 +283,9 @@ const EnvironmentalMapView: React.FC<EnvironmentalMapViewProps> = ({ reports, po
       if (hasSupplies) {
         icon = createCustomIcon('lifebuoy');
       } else {
-        icon = createCustomIcon('pin', statusColors[report.status]);
+        // Fallback color if status is unknown
+        const color = statusColors[report.status] || '#6b7280';
+        icon = createCustomIcon('pin', color);
       }
 
       const marker = L.marker([report.latitude, report.longitude], { 
@@ -217,7 +293,8 @@ const EnvironmentalMapView: React.FC<EnvironmentalMapViewProps> = ({ reports, po
         zIndexOffset: hasSupplies ? 1000 : 0 // Ưu tiên hiển thị marker cứu trợ lên trên
       });
 
-      let popupContent = `<b>${report.aiAnalysis.issueType}</b><br>${report.status}`;
+      const issueType = report.aiAnalysis.issueType || 'Sự cố môi trường';
+      let popupContent = `<b>${issueType}</b><br>${report.status}`;
       if (hasSupplies) {
           popupContent += `<br><span style="color: #ea580c; font-weight: bold;">⚠️ Cần/Có nhu yếu phẩm</span>`;
       }
@@ -235,7 +312,8 @@ const EnvironmentalMapView: React.FC<EnvironmentalMapViewProps> = ({ reports, po
 
     pois.forEach(poi => {
       const poiInfo = poiDetails[poi.type];
-      const icon = createCustomIcon('pin', poiInfo.color);
+      // Use the specific POI type for the icon
+      const icon = createCustomIcon(poi.type, poiInfo.color);
       const marker = L.marker([poi.latitude, poi.longitude], { icon });
 
       marker.bindPopup(`<b>${poi.name}</b><br><p style="margin: 4px 0;">${poi.description}</p>`);

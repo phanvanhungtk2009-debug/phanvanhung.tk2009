@@ -5,6 +5,9 @@ import { PaperAirplaneIcon } from './icons/PaperAirplaneIcon';
 import { SparklesIcon } from './icons/SparklesIcon';
 import { XMarkIcon } from './icons/XMarkIcon';
 import { GlobeIcon } from './icons/GlobeIcon';
+import { MicrophoneIcon } from './icons/MicrophoneIcon';
+import { SpeakerWaveIcon } from './icons/SpeakerWaveIcon';
+import { SpeakerXMarkIcon } from './icons/SpeakerXMarkIcon';
 
 interface FloatingAIAssistantProps {
     isOpen: boolean;
@@ -17,8 +20,12 @@ interface FloatingAIAssistantProps {
 
 const FloatingAIAssistant: React.FC<FloatingAIAssistantProps> = ({ isOpen, onToggle, messages, isLoading, onSubmit, onClearChat }) => {
     const [input, setInput] = useState('');
+    const [isListening, setIsListening] = useState(false);
+    const [isSpeaking, setIsSpeaking] = useState(true); // Default to speaking enabled
     const messagesEndRef = useRef<HTMLDivElement>(null);
     const inputRef = useRef<HTMLInputElement>(null);
+    const recognitionRef = useRef<any>(null);
+    const synthRef = useRef<SpeechSynthesis>(window.speechSynthesis);
 
     const scrollToBottom = () => {
         messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -27,10 +34,70 @@ const FloatingAIAssistant: React.FC<FloatingAIAssistantProps> = ({ isOpen, onTog
     useEffect(() => {
         if (isOpen) {
             scrollToBottom();
-            setTimeout(() => inputRef.current?.focus(), 300); // Focus input sau khi mở
+            setTimeout(() => inputRef.current?.focus(), 300);
         }
     }, [messages, isLoading, isOpen]);
-    
+
+    // Initialize Speech Recognition
+    useEffect(() => {
+        if ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) {
+            const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+            recognitionRef.current = new SpeechRecognition();
+            recognitionRef.current.continuous = false;
+            recognitionRef.current.interimResults = false;
+            recognitionRef.current.lang = 'vi-VN';
+
+            recognitionRef.current.onresult = (event: any) => {
+                const transcript = event.results[0][0].transcript;
+                setInput(transcript);
+                onSubmit(transcript); // Auto-submit on voice end
+                setIsListening(false);
+            };
+
+            recognitionRef.current.onerror = (event: any) => {
+                console.error("Speech recognition error", event.error);
+                setIsListening(false);
+            };
+
+            recognitionRef.current.onend = () => {
+                setIsListening(false);
+            };
+        }
+    }, [onSubmit]);
+
+    // Handle Text-to-Speech
+    useEffect(() => {
+        if (!isSpeaking || !isOpen) {
+            synthRef.current.cancel();
+            return;
+        }
+
+        const lastMessage = messages[messages.length - 1];
+        if (lastMessage && lastMessage.role === 'model' && !isLoading) {
+            // Strip markdown for speech
+            const textToSpeak = lastMessage.content.replace(/[*_#`]/g, '');
+            const utterance = new SpeechSynthesisUtterance(textToSpeak);
+            utterance.lang = 'vi-VN';
+            utterance.rate = 1.1; // Slightly faster
+            synthRef.current.speak(utterance);
+        }
+    }, [messages, isSpeaking, isOpen, isLoading]);
+
+    const toggleListening = () => {
+        if (isListening) {
+            recognitionRef.current?.stop();
+        } else {
+            recognitionRef.current?.start();
+            setIsListening(true);
+        }
+    };
+
+    const toggleSpeaking = () => {
+        if (isSpeaking) {
+            synthRef.current.cancel();
+        }
+        setIsSpeaking(!isSpeaking);
+    };
 
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
@@ -65,6 +132,13 @@ const FloatingAIAssistant: React.FC<FloatingAIAssistantProps> = ({ isOpen, onTog
                                 </div>
                             </div>
                             <div className="flex items-center space-x-1">
+                                <button
+                                    onClick={toggleSpeaking}
+                                    className={`p-2 rounded-full transition-colors ${isSpeaking ? 'text-teal-600 bg-teal-50' : 'text-slate-400 hover:bg-slate-50'}`}
+                                    title={isSpeaking ? "Tắt đọc giọng nói" : "Bật đọc giọng nói"}
+                                >
+                                    {isSpeaking ? <SpeakerWaveIcon className="w-5 h-5" /> : <SpeakerXMarkIcon className="w-5 h-5" />}
+                                </button>
                                 <button 
                                     onClick={onClearChat} 
                                     className="text-slate-400 hover:text-red-500 transition-colors p-2 rounded-full hover:bg-red-50"
@@ -151,12 +225,20 @@ const FloatingAIAssistant: React.FC<FloatingAIAssistantProps> = ({ isOpen, onTog
                                 </div>
                               )}
                             <form onSubmit={handleSubmit} className="flex items-center space-x-2 bg-slate-50 p-1.5 rounded-2xl border border-slate-200 focus-within:border-teal-400 focus-within:ring-2 focus-within:ring-teal-100 transition-all">
+                                <button
+                                    type="button"
+                                    onClick={toggleListening}
+                                    className={`p-2 rounded-xl transition-all ${isListening ? 'bg-red-500 text-white animate-pulse' : 'text-slate-500 hover:bg-slate-200'}`}
+                                    title="Nhập bằng giọng nói"
+                                >
+                                    <MicrophoneIcon className="w-5 h-5" />
+                                </button>
                                 <input
                                     ref={inputRef}
                                     type="text"
                                     value={input}
                                     onChange={(e) => setInput(e.target.value)}
-                                    placeholder="Hỏi về môi trường..."
+                                    placeholder={isListening ? "Đang nghe..." : "Hỏi về môi trường..."}
                                     className="flex-grow px-3 py-2 text-sm bg-transparent border-none focus:ring-0 text-slate-800 placeholder-slate-400"
                                     disabled={isLoading}
                                 />

@@ -7,6 +7,7 @@ import { AIAnalysis } from '../types';
 import { analyzeEnvironmentalImage } from '../services/geminiService';
 import { CheckCircleIcon } from './icons/CheckCircleIcon';
 import { XCircleIcon } from './icons/XCircleIcon';
+import { SparklesIcon } from './icons/SparklesIcon';
 import ReportCard from './ReportCard';
 
 interface ReportFormProps {
@@ -105,37 +106,44 @@ const ReportForm: React.FC<ReportFormProps> = ({ onSubmit, onCancel, isLoading, 
     setMediaType(file.type.startsWith('video') ? 'video' : 'image');
   };
   
-  // Tự động phân tích khi có file media (ĐÃ VÔ HIỆU HÓA THEO YÊU CẦU NGƯỜI DÙNG)
+  // Reset analysis when file changes
   useEffect(() => {
-    const handleMediaAnalysis = async () => {
+    setAiAnalysis(null);
+    setAnalysisMessage(null);
+  }, [mediaFile]);
+
+  const handleManualAnalysis = async () => {
       if (!mediaFile) return;
-
-      // Mặc định tạo kết quả phân tích "Đang chờ" để không chặn việc gửi báo cáo
-      const defaultAnalysis: AIAnalysis = {
-          isIssuePresent: true,
-          issueType: "Đang chờ phân tích",
-          description: description || "Báo cáo sự cố môi trường.",
-          priority: "Trung bình",
-          solution: "Đang chờ cán bộ kiểm tra.",
-      };
-      setAiAnalysis(defaultAnalysis);
       
-      /* 
-      // Vô hiệu hóa phần gọi AI Gemini để tránh lỗi quota và tăng tốc độ
       setIsAnalyzing(true);
+      setAnalysisMessage(null);
+      
       try {
-        // ... logic gọi AI cũ ...
-      } catch (err) {
-        // ... logic xử lý lỗi cũ ...
-      } finally {
-        setIsAnalyzing(false);
-      }
-      */
-    };
-    
-    handleMediaAnalysis();
+          const base64 = await new Promise<string>((resolve, reject) => {
+              const reader = new FileReader();
+              reader.readAsDataURL(mediaFile);
+              reader.onload = () => {
+                  const result = reader.result as string;
+                  // Remove data URL prefix (e.g., "data:image/jpeg;base64,")
+                  const base64Data = result.split(',')[1];
+                  resolve(base64Data);
+              };
+              reader.onerror = error => reject(error);
+          });
 
-  }, [mediaFile]); // Chỉ chạy khi mediaFile thay đổi
+          const result = await analyzeEnvironmentalImage(base64, mediaFile.type);
+          setAiAnalysis(result);
+          // Auto-fill description if empty
+          if (!description && result.description) {
+              setDescription(result.description);
+          }
+      } catch (error) {
+          console.error("Analysis failed:", error);
+          setAnalysisMessage("Không thể phân tích hình ảnh. Vui lòng thử lại hoặc nhập mô tả thủ công.");
+      } finally {
+          setIsAnalyzing(false);
+      }
+  };
 
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -180,9 +188,33 @@ const ReportForm: React.FC<ReportFormProps> = ({ onSubmit, onCancel, isLoading, 
                 <label className="text-lg font-bold text-slate-700">Hình ảnh / Video sự cố <span className="text-red-500">*</span></label>
              </div>
             <ImageUploader onImageChange={handleMediaChange} imageUrl={mediaUrl} mediaType={mediaType} />
+            
+            {/* AI Analysis Button */}
+            {mediaFile && mediaType === 'image' && !aiAnalysis && (
+                <div className="flex justify-center">
+                    <button
+                        type="button"
+                        onClick={handleManualAnalysis}
+                        disabled={isAnalyzing || !isOnline}
+                        className="flex items-center space-x-2 px-4 py-2 bg-indigo-50 text-indigo-700 rounded-full hover:bg-indigo-100 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                        {isAnalyzing ? (
+                            <>
+                                <div className="w-4 h-4 border-2 border-indigo-600 border-t-transparent rounded-full animate-spin"></div>
+                                <span>Đang phân tích...</span>
+                            </>
+                        ) : (
+                            <>
+                                <SparklesIcon className="w-4 h-4" />
+                                <span>Phân tích bằng AI</span>
+                            </>
+                        )}
+                    </button>
+                </div>
+            )}
           </div>
           
-           {/* Analysis Result Area (Simplified for User Request) */}
+           {/* Analysis Result Area */}
            <div className="min-h-[20px] transition-all duration-500">
                 {aiAnalysis && (
                     <div className="space-y-4 animate-fade-in-up">
@@ -190,15 +222,43 @@ const ReportForm: React.FC<ReportFormProps> = ({ onSubmit, onCancel, isLoading, 
                             {isOnline ? <CheckCircleIcon className="w-6 h-6 flex-shrink-0 text-green-600" /> : <div className="w-6 h-6 flex-shrink-0 text-amber-600 font-bold text-xl">!</div>}
                             <div>
                                 <p className={`font-bold ${isOnline ? 'text-green-900' : 'text-amber-900'}`}>
-                                    {isOnline ? 'Dữ liệu đã sẵn sàng' : 'Đang ở chế độ Offline - Dữ liệu sẽ được lưu tạm thời'}
+                                    {isOnline ? 'Đã phân tích xong' : 'Đang ở chế độ Offline'}
                                 </p>
                             </div>
                         </div>
-                        {/* Hiển thị tóm tắt báo cáo thay vì ReportCard đầy đủ của AI */}
-                        <div className="bg-slate-50 p-4 rounded-xl border border-slate-200">
-                            <p className="text-sm font-bold text-slate-700 mb-1">Trạng thái phân tích:</p>
-                            <p className="text-sm text-slate-600 italic">Hệ thống sẽ phân tích hình ảnh sau khi cán bộ tiếp nhận.</p>
+                        
+                        {/* AI Result Card */}
+                        <div className="bg-white p-5 rounded-2xl border border-indigo-100 shadow-sm space-y-3 relative overflow-hidden">
+                            <div className="absolute top-0 right-0 p-2 bg-indigo-50 rounded-bl-2xl">
+                                <SparklesIcon className="w-5 h-5 text-indigo-500" />
+                            </div>
+                            <div>
+                                <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">Sự cố phát hiện</span>
+                                <p className="text-lg font-bold text-slate-800">{aiAnalysis.issueType}</p>
+                            </div>
+                            <div>
+                                <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">Mô tả</span>
+                                <p className="text-sm text-slate-600">{aiAnalysis.description}</p>
+                            </div>
+                             <div>
+                                <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">Giải pháp đề xuất</span>
+                                <p className="text-sm text-slate-600">{aiAnalysis.solution}</p>
+                            </div>
+                            <div className="pt-2">
+                                <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                                    aiAnalysis.priority === 'Cao' ? 'bg-red-100 text-red-800' :
+                                    aiAnalysis.priority === 'Trung bình' ? 'bg-yellow-100 text-yellow-800' :
+                                    'bg-green-100 text-green-800'
+                                }`}>
+                                    Mức độ: {aiAnalysis.priority}
+                                </span>
+                            </div>
                         </div>
+                    </div>
+                )}
+                {analysisMessage && !aiAnalysis && (
+                    <div className="p-4 bg-red-50 text-red-600 rounded-xl text-sm text-center">
+                        {analysisMessage}
                     </div>
                 )}
             </div>

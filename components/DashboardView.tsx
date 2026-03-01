@@ -3,6 +3,8 @@ import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, Responsive
 import { MapContainer, TileLayer, CircleMarker, Popup } from 'react-leaflet';
 import 'leaflet/dist/leaflet.css';
 import { EnvironmentalReport } from '../types';
+import { TrophyIcon } from './icons/TrophyIcon';
+import { UsersIcon } from './icons/UsersIcon';
 
 interface DashboardStats {
   total: number;
@@ -22,6 +24,15 @@ const DashboardView: React.FC<DashboardViewProps> = ({ user }) => {
   const [stats, setStats] = useState<DashboardStats | null>(null);
   const [reports, setReports] = useState<EnvironmentalReport[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+
+  // Mock Leaderboard Data
+  const leaderboard = [
+      { name: 'Nguyễn Văn A', points: 1250, rank: 'Chiến binh Xanh', avatar: 'https://i.pravatar.cc/150?u=a' },
+      { name: 'Trần Thị B', points: 980, rank: 'Người bảo vệ', avatar: 'https://i.pravatar.cc/150?u=b' },
+      { name: 'Lê Văn C', points: 850, rank: 'Tình nguyện viên', avatar: 'https://i.pravatar.cc/150?u=c' },
+      { name: 'Phạm Thị D', points: 720, rank: 'Tình nguyện viên', avatar: 'https://i.pravatar.cc/150?u=d' },
+      { name: 'Hoàng Văn E', points: 600, rank: 'Thành viên mới', avatar: 'https://i.pravatar.cc/150?u=e' },
+  ];
 
   const fetchData = async () => {
     try {
@@ -187,6 +198,91 @@ const DashboardView: React.FC<DashboardViewProps> = ({ user }) => {
             </PieChart>
           </ResponsiveContainer>
         </div>
+      </div>
+
+      {/* NEW SECTION: Leaderboard & Recent Activity */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          {/* Leaderboard */}
+          <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-100 lg:col-span-1">
+              <div className="flex items-center justify-between mb-6">
+                  <h3 className="font-bold text-slate-800 flex items-center">
+                      <TrophyIcon className="w-5 h-5 text-yellow-500 mr-2" />
+                      Bảng Xếp Hạng Xanh
+                  </h3>
+                  <span className="text-xs font-bold text-teal-600 bg-teal-50 px-2 py-1 rounded-lg">Tháng này</span>
+              </div>
+              <div className="space-y-4">
+                  {leaderboard.map((user, index) => (
+                      <div key={index} className="flex items-center justify-between p-3 hover:bg-slate-50 rounded-xl transition-colors">
+                          <div className="flex items-center space-x-3">
+                              <div className={`w-8 h-8 flex items-center justify-center rounded-full font-bold text-sm ${index === 0 ? 'bg-yellow-100 text-yellow-700' : index === 1 ? 'bg-gray-100 text-gray-700' : index === 2 ? 'bg-orange-100 text-orange-700' : 'bg-slate-100 text-slate-500'}`}>
+                                  {index + 1}
+                              </div>
+                              <img src={user.avatar} alt={user.name} className="w-10 h-10 rounded-full border-2 border-white shadow-sm" />
+                              <div>
+                                  <p className="font-bold text-slate-800 text-sm">{user.name}</p>
+                                  <p className="text-xs text-slate-500">{user.rank}</p>
+                              </div>
+                          </div>
+                          <div className="text-right">
+                              <p className="font-bold text-teal-600">{user.points}</p>
+                              <p className="text-[10px] text-slate-400">điểm</p>
+                          </div>
+                      </div>
+                  ))}
+              </div>
+              <button className="w-full mt-6 py-2 text-sm font-bold text-teal-600 hover:bg-teal-50 rounded-xl transition-colors">
+                  Xem tất cả
+              </button>
+          </div>
+
+          {/* Recent Activity (Taking up 2 columns) */}
+          <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-100 lg:col-span-2">
+               <h3 className="font-bold text-slate-800 mb-6 flex items-center">
+                  <UsersIcon className="w-5 h-5 text-blue-500 mr-2" />
+                  Hoạt động Gần đây
+               </h3>
+               <div className="space-y-0">
+                  {reports.slice(0, 5).map((report, index) => (
+                      <div key={report.id} className="flex items-start space-x-4 p-4 border-b border-slate-50 last:border-0 hover:bg-slate-50 transition-colors">
+                          <div className="relative flex-shrink-0">
+                              <img 
+                                src={report.mediaUrl} 
+                                alt="Report" 
+                                className="w-16 h-16 rounded-xl object-cover border border-slate-100 shadow-sm"
+                                onError={(e) => {(e.target as HTMLImageElement).src = 'https://via.placeholder.com/150?text=No+Image'}}
+                              />
+                              <div className={`absolute -bottom-1 -right-1 w-5 h-5 rounded-full border-2 border-white flex items-center justify-center text-[10px] text-white font-bold ${
+                                  report.status === 'Báo cáo mới' ? 'bg-red-500' : 
+                                  report.status === 'Đang xử lý' ? 'bg-amber-500' : 'bg-green-500'
+                              }`}>
+                                  {report.status === 'Báo cáo mới' ? '!' : report.status === 'Đang xử lý' ? '...' : '✓'}
+                              </div>
+                          </div>
+                          <div className="flex-grow min-w-0">
+                              <div className="flex justify-between items-start">
+                                  <h4 className="font-bold text-slate-800 text-sm truncate pr-2">{report.aiAnalysis.issueType}</h4>
+                                  <span className="text-xs text-slate-400 whitespace-nowrap">{new Date(report.timestamp).toLocaleDateString('vi-VN')}</span>
+                              </div>
+                              <p className="text-xs text-slate-500 mt-1 line-clamp-2">{report.description}</p>
+                              <div className="flex items-center mt-2 space-x-2">
+                                  <span className="text-[10px] px-2 py-0.5 bg-slate-100 text-slate-600 rounded-full font-medium">
+                                      {report.area || 'Chưa xác định'}
+                                  </span>
+                                  <span className={`text-[10px] px-2 py-0.5 rounded-full font-medium ${
+                                      report.aiAnalysis.priority === 'Cao' ? 'bg-red-50 text-red-600' : 'bg-green-50 text-green-600'
+                                  }`}>
+                                      {report.aiAnalysis.priority}
+                                  </span>
+                              </div>
+                          </div>
+                      </div>
+                  ))}
+                  {reports.length === 0 && (
+                      <div className="text-center py-10 text-slate-400 text-sm">Chưa có hoạt động nào.</div>
+                  )}
+               </div>
+          </div>
       </div>
 
       {/* Heatmap / Risk Map */}
