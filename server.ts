@@ -7,6 +7,7 @@ import jwt from 'jsonwebtoken';
 import bcrypt from 'bcryptjs';
 import db, { initDb } from './database';
 import { EnvironmentalReport } from './types';
+import { supabase } from './services/supabaseClient';
 
 const PORT = 3000;
 const JWT_SECRET = process.env.JWT_SECRET || 'secret-key-change-me';
@@ -48,8 +49,13 @@ async function startServer() {
 
   // --- API Routes ---
 
+  // Health check for Vercel
+  app.get('/api/health', (req, res) => {
+    res.json({ status: 'ok', environment: process.env.NODE_ENV });
+  });
+
   // Auth Login
-  app.post('/api/auth/login', (req, res) => {
+  app.post('/api/auth/login', async (req, res) => {
     try {
       const { username, password } = req.body;
       console.log(`Login attempt for username: ${username}`);
@@ -58,7 +64,25 @@ async function startServer() {
         return res.status(400).json({ message: 'Vui lòng nhập đầy đủ tên đăng nhập và mật khẩu' });
       }
       
-      const user = db.prepare('SELECT * FROM users WHERE username = ?').get(username) as any;
+      let user: any = null;
+
+      // Try Supabase first
+      if (process.env.VITE_SUPABASE_URL && process.env.VITE_SUPABASE_ANON_KEY) {
+        const { data, error } = await supabase
+          .from('users')
+          .select('*')
+          .eq('username', username)
+          .single();
+        
+        if (!error && data) {
+          user = data;
+        }
+      }
+
+      // Fallback to SQLite
+      if (!user) {
+        user = db.prepare('SELECT * FROM users WHERE username = ?').get(username) as any;
+      }
 
       if (!user) {
         console.log(`User not found: ${username}`);
@@ -80,7 +104,7 @@ async function startServer() {
   });
 
   // Auth Register
-  app.post('/api/auth/register', (req, res) => {
+  app.post('/api/auth/register', async (req, res) => {
     try {
       const { username, password, role, area, organizationName } = req.body;
       
@@ -97,23 +121,56 @@ async function startServer() {
           });
       }
 
-      // Check if user exists
-      const existingUser = db.prepare('SELECT * FROM users WHERE username = ?').get(username);
-      if (existingUser) {
-        return res.status(400).json({ message: 'Tên đăng nhập đã tồn tại' });
+      const hashedPassword = bcrypt.hashSync(password, 10);
+
+      // Try Supabase first
+      if (process.env.VITE_SUPABASE_URL && process.env.VITE_SUPABASE_ANON_KEY) {
+        try {
+          // Check if user exists in Supabase
+          const { data: existingUser } = await supabase
+            .from('users')
+            .select('username')
+            .eq('username', username)
+            .single();
+          
+          if (existingUser) {
+            return res.status(400).json({ message: 'Tên đăng nhập đã tồn tại (Supabase)' });
+          }
+
+          const { error } = await supabase
+            .from('users')
+            .insert([{
+              username,
+              password: hashedPassword,
+              role,
+              area,
+              organizationName,
+              status: 'active'
+            }]);
+          
+          if (!error) {
+            return res.status(201).json({ message: 'Đăng ký tài khoản thành công (Supabase). Bạn có thể đăng nhập ngay.' });
+          }
+          console.warn('Supabase register failed, falling back to SQLite:', error);
+        } catch (err) {
+          console.error('Supabase error during registration:', err);
+        }
       }
 
-      const hashedPassword = bcrypt.hashSync(password, 10);
+      // Check if user exists in SQLite
+      const existingUser = db.prepare('SELECT * FROM users WHERE username = ?').get(username);
+      if (existingUser) {
+        return res.status(400).json({ message: 'Tên đăng nhập đã tồn tại (SQLite)' });
+      }
+
       const stmt = db.prepare(`
         INSERT INTO users (username, password, role, area, organizationName, status)
         VALUES (?, ?, ?, ?, ?, ?)
       `);
       
-      // New registrations are 'pending' by default for security, but for this demo let's make them 'active'
-      // so the user can test immediately.
       stmt.run(username, hashedPassword, role, area, organizationName, 'active');
 
-      res.status(201).json({ message: 'Đăng ký tài khoản thành công. Bạn có thể đăng nhập ngay.' });
+      res.status(201).json({ message: 'Đăng ký tài khoản thành công (SQLite). Bạn có thể đăng nhập ngay.' });
     } catch (error) {
       console.error('Registration error:', error);
       res.status(500).json({ message: 'Lỗi hệ thống khi đăng ký' });
@@ -121,25 +178,54 @@ async function startServer() {
   });
 
   // Get Reports
-  app.get('/api/reports', (req, res) => {
-    const reports = db.prepare('SELECT * FROM reports ORDER BY timestamp DESC').all();
-    // Parse JSON fields if necessary or boolean conversion
-    const parsedReports = reports.map((r: any) => ({
-      ...r,
-      isIssuePresent: !!r.isIssuePresent,
-      aiAnalysis: {
-        issueType: r.issueType,
-        description: r.description,
-        priority: r.priority,
-        solution: r.solution,
-        isIssuePresent: !!r.isIssuePresent
+  app.get('/api/reports', async (req, res) => {
+    try {
+      // Try Supabase first if configured
+      if (process.env.VITE_SUPABASE_URL && process.env.VITE_SUPABASE_ANON_KEY) {
+        const { data, error } = await supabase
+          .from('reports')
+          .select('*')
+          .order('timestamp', { ascending: false });
+        
+        if (!error && data) {
+          const parsedReports = data.map((r: any) => ({
+            ...r,
+            isIssuePresent: !!r.isIssuePresent,
+            aiAnalysis: {
+              issueType: r.issueType,
+              description: r.description,
+              priority: r.priority,
+              solution: r.solution,
+              isIssuePresent: !!r.isIssuePresent
+            }
+          }));
+          return res.json(parsedReports);
+        }
+        console.warn('Supabase fetch failed, falling back to SQLite:', error);
       }
-    }));
-    res.json(parsedReports);
+
+      const reports = db.prepare('SELECT * FROM reports ORDER BY timestamp DESC').all();
+      // Parse JSON fields if necessary or boolean conversion
+      const parsedReports = reports.map((r: any) => ({
+        ...r,
+        isIssuePresent: !!r.isIssuePresent,
+        aiAnalysis: {
+          issueType: r.issueType,
+          description: r.description,
+          priority: r.priority,
+          solution: r.solution,
+          isIssuePresent: !!r.isIssuePresent
+        }
+      }));
+      res.json(parsedReports);
+    } catch (err) {
+      console.error('Error fetching reports:', err);
+      res.status(500).json({ message: 'Lỗi khi tải danh sách báo cáo' });
+    }
   });
 
   // Create Report
-  app.post('/api/reports', (req, res) => {
+  app.post('/api/reports', async (req, res) => {
     const report = req.body;
     console.log(`Received report at Lat: ${report.latitude}, Lng: ${report.longitude}`);
     
@@ -197,6 +283,40 @@ async function startServer() {
       }
     });
 
+    const timestamp = new Date().toISOString();
+
+    // Try Supabase first
+    if (process.env.VITE_SUPABASE_URL && process.env.VITE_SUPABASE_ANON_KEY) {
+      try {
+        const { error } = await supabase
+          .from('reports')
+          .insert([{
+            id: report.id,
+            mediaUrl: report.mediaUrl,
+            mediaType: report.mediaType,
+            latitude: report.latitude,
+            longitude: report.longitude,
+            userDescription: report.userDescription,
+            issueType: report.aiAnalysis.issueType,
+            description: report.aiAnalysis.description,
+            priority: report.aiAnalysis.priority,
+            solution: report.aiAnalysis.solution,
+            isIssuePresent: report.aiAnalysis.isIssuePresent ? 1 : 0,
+            status: report.status,
+            timestamp: timestamp,
+            area: area
+          }]);
+        
+        if (!error) {
+          broadcast({ type: 'NEW_REPORT', report: { ...report, area, timestamp } });
+          return res.status(201).json({ message: 'Report created successfully (Supabase)' });
+        }
+        console.warn('Supabase insert failed, falling back to SQLite:', error);
+      } catch (err) {
+        console.error('Supabase error:', err);
+      }
+    }
+
     const stmt = db.prepare(`
       INSERT INTO reports (id, mediaUrl, mediaType, latitude, longitude, userDescription, issueType, description, priority, solution, isIssuePresent, status, timestamp, area)
       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
@@ -216,14 +336,14 @@ async function startServer() {
         report.aiAnalysis.solution,
         report.aiAnalysis.isIssuePresent ? 1 : 0,
         report.status,
-        new Date().toISOString(),
+        timestamp,
         area
       );
 
       // Broadcast new report via WebSocket
-      broadcast({ type: 'NEW_REPORT', report: { ...report, area, timestamp: new Date().toISOString() } });
+      broadcast({ type: 'NEW_REPORT', report: { ...report, area, timestamp } });
 
-      res.status(201).json({ message: 'Report created successfully' });
+      res.status(201).json({ message: 'Report created successfully (SQLite)' });
     } catch (error) {
       console.error('Error saving report:', error);
       res.status(500).json({ message: 'Failed to save report' });
@@ -231,16 +351,34 @@ async function startServer() {
   });
 
   // Update Report Status
-  app.patch('/api/reports/:id/status', (req, res) => {
+  app.patch('/api/reports/:id/status', async (req, res) => {
     const { id } = req.params;
     const { status } = req.body;
     
+    // Try Supabase first
+    if (process.env.VITE_SUPABASE_URL && process.env.VITE_SUPABASE_ANON_KEY) {
+      try {
+        const { error, data } = await supabase
+          .from('reports')
+          .update({ status })
+          .eq('id', id);
+        
+        if (!error) {
+          broadcast({ type: 'REPORT_UPDATED', id, status });
+          return res.json({ message: 'Status updated (Supabase)' });
+        }
+        console.warn('Supabase update failed, falling back to SQLite:', error);
+      } catch (err) {
+        console.error('Supabase error during update:', err);
+      }
+    }
+
     const stmt = db.prepare('UPDATE reports SET status = ? WHERE id = ?');
     const result = stmt.run(status, id);
 
     if (result.changes > 0) {
       broadcast({ type: 'REPORT_UPDATED', id, status });
-      res.json({ message: 'Status updated' });
+      res.json({ message: 'Status updated (SQLite)' });
     } else {
       res.status(404).json({ message: 'Report not found' });
     }
@@ -277,20 +415,63 @@ async function startServer() {
   });
 
   // Get Stats for Dashboard
-  app.get('/api/stats', (req, res) => {
-    const totalReports = db.prepare('SELECT count(*) as count FROM reports').get() as any;
-    const byPriority = db.prepare('SELECT priority, count(*) as count FROM reports GROUP BY priority').all();
-    const byStatus = db.prepare('SELECT status, count(*) as count FROM reports GROUP BY status').all();
-    const byArea = db.prepare('SELECT area, count(*) as count FROM reports GROUP BY area').all();
-    const recentActivity = db.prepare('SELECT id, issueType, timestamp, status FROM reports ORDER BY timestamp DESC LIMIT 5').all();
+  app.get('/api/stats', async (req, res) => {
+    try {
+      // Try Supabase first
+      if (process.env.VITE_SUPABASE_URL && process.env.VITE_SUPABASE_ANON_KEY) {
+        const { data: reports, error } = await supabase
+          .from('reports')
+          .select('priority, status, area, id, issueType, timestamp');
+        
+        if (!error && reports) {
+          const total = reports.length;
+          
+          const byPriorityMap: Record<string, number> = {};
+          const byStatusMap: Record<string, number> = {};
+          const byAreaMap: Record<string, number> = {};
+          
+          reports.forEach(r => {
+            byPriorityMap[r.priority] = (byPriorityMap[r.priority] || 0) + 1;
+            byStatusMap[r.status] = (byStatusMap[r.status] || 0) + 1;
+            byAreaMap[r.area] = (byAreaMap[r.area] || 0) + 1;
+          });
 
-    res.json({
-      total: totalReports.count,
-      byPriority,
-      byStatus,
-      byArea,
-      recentActivity
-    });
+          const byPriority = Object.entries(byPriorityMap).map(([priority, count]) => ({ priority, count }));
+          const byStatus = Object.entries(byStatusMap).map(([status, count]) => ({ status, count }));
+          const byArea = Object.entries(byAreaMap).map(([area, count]) => ({ area, count }));
+          const recentActivity = [...reports]
+            .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())
+            .slice(0, 5)
+            .map(r => ({ id: r.id, issueType: r.issueType, timestamp: r.timestamp, status: r.status }));
+
+          return res.json({
+            total,
+            byPriority,
+            byStatus,
+            byArea,
+            recentActivity
+          });
+        }
+        console.warn('Supabase stats failed, falling back to SQLite:', error);
+      }
+
+      const totalReports = db.prepare('SELECT count(*) as count FROM reports').get() as any;
+      const byPriority = db.prepare('SELECT priority, count(*) as count FROM reports GROUP BY priority').all();
+      const byStatus = db.prepare('SELECT status, count(*) as count FROM reports GROUP BY status').all();
+      const byArea = db.prepare('SELECT area, count(*) as count FROM reports GROUP BY area').all();
+      const recentActivity = db.prepare('SELECT id, issueType, timestamp, status FROM reports ORDER BY timestamp DESC LIMIT 5').all();
+
+      res.json({
+        total: totalReports.count,
+        byPriority,
+        byStatus,
+        byArea,
+        recentActivity
+      });
+    } catch (err) {
+      console.error('Stats error:', err);
+      res.status(500).json({ message: 'Lỗi khi tải thống kê' });
+    }
   });
 
   // Vite middleware for development
@@ -310,9 +491,17 @@ async function startServer() {
     });
   }
 
-  server.listen(PORT, '0.0.0.0', () => {
-    console.log(`Server running on http://localhost:${PORT}`);
-  });
+  if (process.env.NODE_ENV !== 'production' || !process.env.VERCEL) {
+    server.listen(PORT, '0.0.0.0', () => {
+      console.log(`Server running on http://localhost:${PORT}`);
+    });
+  }
+
+  return app;
 }
 
-startServer();
+export const appPromise = startServer();
+export default async (req: any, res: any) => {
+  const app = await appPromise;
+  return app(req, res);
+};
