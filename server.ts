@@ -49,9 +49,33 @@ async function startServer() {
 
   // --- API Routes ---
 
-  // Health check for Vercel
-  app.get('/api/health', (req, res) => {
-    res.json({ status: 'ok', environment: process.env.NODE_ENV });
+  // Health check for Vercel and Supabase
+  app.get('/api/health', async (req, res) => {
+    const status: any = {
+      server: 'ok',
+      sqlite: 'connected',
+      supabase: 'not_configured'
+    };
+
+    if (process.env.VITE_SUPABASE_URL && process.env.VITE_SUPABASE_ANON_KEY) {
+      try {
+        const { error } = await supabase.from('reports').select('id').limit(1);
+        if (error) {
+          status.supabase = 'error';
+          status.supabaseError = error.message;
+          if (error.message.includes('Could not find the table')) {
+            status.supabaseAdvice = 'Bạn cần chạy lệnh SQL để tạo bảng "reports" trên Supabase.';
+          }
+        } else {
+          status.supabase = 'connected';
+        }
+      } catch (err: any) {
+        status.supabase = 'exception';
+        status.supabaseError = err.message;
+      }
+    }
+
+    res.json(status);
   });
 
   // Auth Login
@@ -76,6 +100,8 @@ async function startServer() {
         
         if (!error && data) {
           user = data;
+        } else if (error && !(error.code === '42P01' || error.message?.includes('Could not find the table'))) {
+          console.warn('Supabase login check failed:', error.message);
         }
       }
 
@@ -151,9 +177,15 @@ async function startServer() {
           if (!error) {
             return res.status(201).json({ message: 'Đăng ký tài khoản thành công (Supabase). Bạn có thể đăng nhập ngay.' });
           }
-          console.warn('Supabase register failed, falling back to SQLite:', error);
-        } catch (err) {
-          console.error('Supabase error during registration:', err);
+          
+          const isTableNotFound = error.code === '42P01' || error.message?.includes('Could not find the table');
+          if (!isTableNotFound) {
+            console.warn('Supabase register failed, falling back to SQLite:', error.message || error);
+          }
+        } catch (err: any) {
+          if (!err.message?.includes('Could not find the table')) {
+            console.error('Supabase error during registration:', err.message || err);
+          }
         }
       }
 
@@ -176,6 +208,8 @@ async function startServer() {
       res.status(500).json({ message: 'Lỗi hệ thống khi đăng ký' });
     }
   });
+
+let supabaseTableErrorLogged = false;
 
   // Get Reports
   app.get('/api/reports', async (req, res) => {
@@ -201,7 +235,12 @@ async function startServer() {
           }));
           return res.json(parsedReports);
         }
-        console.warn('Supabase fetch failed, falling back to SQLite:', error.message || error);
+        
+        // Silence "Table not found" errors as they are expected before initial setup
+        const isTableNotFound = error?.code === '42P01' || (error?.message && error.message.includes('Could not find the table'));
+        if (!isTableNotFound) {
+          console.warn('Supabase fetch failed:', error?.message || error);
+        }
       }
 
       const reports = db.prepare('SELECT * FROM reports ORDER BY timestamp DESC').all();
@@ -311,9 +350,15 @@ async function startServer() {
           broadcast({ type: 'NEW_REPORT', report: { ...report, area, timestamp } });
           return res.status(201).json({ message: 'Report created successfully (Supabase)' });
         }
-        console.warn('Supabase insert failed, falling back to SQLite:', error.message || error);
+        
+        const isTableNotFound = error.code === '42P01' || error.message?.includes('Could not find the table');
+        if (!isTableNotFound) {
+          console.warn('Supabase insert failed, falling back to SQLite:', error.message || error);
+        }
       } catch (err: any) {
-        console.error('Supabase error:', err.message || err);
+        if (!err.message?.includes('Could not find the table')) {
+          console.error('Supabase error:', err.message || err);
+        }
       }
     }
 
@@ -350,6 +395,108 @@ async function startServer() {
     }
   });
 
+  // Bulk Create Reports
+  app.post('/api/reports/bulk', async (req, res) => {
+    const { reports } = req.body;
+    if (!Array.isArray(reports)) {
+      return res.status(400).json({ message: 'Dữ liệu không hợp lệ. Phải là một mảng báo cáo.' });
+    }
+
+    console.log(`Bulk importing ${reports.length} reports...`);
+    const timestamp = new Date().toISOString();
+    const results = { success: 0, failed: 0 };
+
+    // District coordinates for area matching
+    const districtCoords: Record<string, { lat: number, lng: number }> = {
+      'Hải Châu': { lat: 16.0474, lng: 108.2197 },
+      'Thanh Khê': { lat: 16.0614, lng: 108.1801 },
+      'Sơn Trà': { lat: 16.0911, lng: 108.2616 },
+      'Ngũ Hành Sơn': { lat: 16.0025, lng: 108.2492 },
+      'Liên Chiểu': { lat: 16.0592, lng: 108.1384 },
+      'Cẩm Lệ': { lat: 15.9988, lng: 108.1916 },
+      'Hòa Vang': { lat: 15.9867, lng: 108.0671 },
+      'Tam Kỳ': { lat: 15.5647, lng: 108.4811 },
+      'Hội An': { lat: 15.8801, lng: 108.3380 }
+    };
+
+    const calculateDistance = (lat1: number, lon1: number, lat2: number, lon2: number) => {
+      const R = 6371;
+      const dLat = (lat2 - lat1) * Math.PI / 180;
+      const dLon = (lon2 - lon1) * Math.PI / 180;
+      const a = Math.sin(dLat / 2) * Math.sin(dLat / 2) + Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * Math.sin(dLon / 2) * Math.sin(dLon / 2);
+      return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+    };
+
+    for (const report of reports) {
+      let area = 'Hải Châu';
+      let minDistance = Infinity;
+      Object.entries(districtCoords).forEach(([name, coords]) => {
+        const dist = calculateDistance(report.latitude, report.longitude, coords.lat, coords.lng);
+        if (dist < minDistance) {
+          minDistance = dist;
+          area = name;
+        }
+      });
+
+      const reportTimestamp = report.timestamp || timestamp;
+
+      // Try Supabase
+      if (process.env.VITE_SUPABASE_URL && process.env.VITE_SUPABASE_ANON_KEY) {
+        try {
+          const { error } = await supabase.from('reports').insert([{
+            id: report.id,
+            mediaUrl: report.mediaUrl,
+            mediaType: report.mediaType,
+            latitude: report.latitude,
+            longitude: report.longitude,
+            userDescription: report.userDescription,
+            issueType: report.aiAnalysis.issueType,
+            description: report.aiAnalysis.description,
+            priority: report.aiAnalysis.priority,
+            solution: report.aiAnalysis.solution,
+            isIssuePresent: report.aiAnalysis.isIssuePresent ? 1 : 0,
+            status: report.status,
+            timestamp: reportTimestamp,
+            area: area
+          }]);
+          if (!error) {
+            results.success++;
+            continue;
+          }
+          const isTableNotFound = error.code === '42P01' || error.message?.includes('Could not find the table');
+          if (!isTableNotFound) {
+             console.warn('Supabase bulk insert failed:', error.message);
+          }
+        } catch (err: any) {
+          if (!err.message?.includes('Could not find the table')) {
+            console.error('Supabase bulk insert error:', err);
+          }
+        }
+      }
+
+      // Fallback to SQLite
+      try {
+        const stmt = db.prepare(`
+          INSERT INTO reports (id, mediaUrl, mediaType, latitude, longitude, userDescription, issueType, description, priority, solution, isIssuePresent, status, timestamp, area)
+          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        `);
+        stmt.run(
+          report.id, report.mediaUrl, report.mediaType, report.latitude, report.longitude,
+          report.userDescription, report.aiAnalysis.issueType, report.aiAnalysis.description,
+          report.aiAnalysis.priority, report.aiAnalysis.solution, report.aiAnalysis.isIssuePresent ? 1 : 0,
+          report.status, reportTimestamp, area
+        );
+        results.success++;
+      } catch (err) {
+        console.error('SQLite bulk insert error:', err);
+        results.failed++;
+      }
+    }
+
+    broadcast({ type: 'NEW_REPORT' }); // Notify clients to refresh
+    res.json({ message: `Đã nhập thành công ${results.success} báo cáo. Thất bại: ${results.failed}`, results });
+  });
+
   // Update Report Status
   app.patch('/api/reports/:id/status', async (req, res) => {
     const { id } = req.params;
@@ -367,9 +514,15 @@ async function startServer() {
           broadcast({ type: 'REPORT_UPDATED', id, status });
           return res.json({ message: 'Status updated (Supabase)' });
         }
-        console.warn('Supabase update failed, falling back to SQLite:', error.message || error);
+        
+        const isTableNotFound = error.code === '42P01' || error.message?.includes('Could not find the table');
+        if (!isTableNotFound) {
+          console.warn('Supabase update failed, falling back to SQLite:', error.message || error);
+        }
       } catch (err: any) {
-        console.error('Supabase error during update:', err.message || err);
+        if (!err.message?.includes('Could not find the table')) {
+          console.error('Supabase error during update:', err.message || err);
+        }
       }
     }
 
@@ -452,7 +605,11 @@ async function startServer() {
             recentActivity
           });
         }
-        console.warn('Supabase stats failed, falling back to SQLite:', error.message || error);
+        
+        const isTableNotFound = error?.code === '42P01' || (error?.message && error.message.includes('Could not find the table'));
+        if (!isTableNotFound) {
+          console.warn('Supabase stats failed:', error.message || error);
+        }
       }
 
       const totalReports = db.prepare('SELECT count(*) as count FROM reports').get() as any;
