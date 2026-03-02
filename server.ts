@@ -358,7 +358,7 @@ async function startServer() {
     // Try Supabase first
     if (process.env.VITE_SUPABASE_URL && process.env.VITE_SUPABASE_ANON_KEY) {
       try {
-        const { error, data } = await supabase
+        const { error } = await supabase
           .from('reports')
           .update({ status })
           .eq('id', id);
