@@ -462,6 +462,26 @@ const App: React.FC = () => {
     }
   };
 
+  const handleExternalAnalysis = async (reportId: string, mediaUrl: string) => {
+    try {
+      const response = await fetch('/api/external-analysis', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ reportId, data: mediaUrl }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.message || 'Lỗi khi gọi mô hình ngoài');
+      }
+
+      return await response.json();
+    } catch (error: any) {
+      addToast(error.message || 'Lỗi kết nối mô hình ngoài', 'error');
+      throw error;
+    }
+  };
+
   const handleSelectReport = (report: EnvironmentalReport | null) => {
     setSelectedReport(report);
   };
@@ -684,6 +704,7 @@ const App: React.FC = () => {
             report={selectedReport}
             onClose={() => handleSelectReport(null)}
             onUpdateStatus={handleUpdateReportStatus}
+            onExternalAnalysis={handleExternalAnalysis}
           />
         )}
 

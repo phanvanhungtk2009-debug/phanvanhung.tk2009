@@ -246,6 +246,36 @@ async function startServer() {
     }
   });
 
+  // External Model Analysis Proxy
+  app.post('/api/external-analysis', async (req, res) => {
+    const { reportId, data } = req.body;
+    const apiUrl = process.env.EXTERNAL_MODEL_API_URL;
+    const apiKey = process.env.EXTERNAL_MODEL_API_KEY;
+
+    if (!apiUrl) {
+      return res.status(500).json({ message: 'Chưa cấu hình URL cho mô hình bên ngoài' });
+    }
+
+    try {
+      console.log(`Sending report ${reportId} to external model for analysis...`);
+      const response = await fetch(apiUrl, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${apiKey}`
+        },
+        body: JSON.stringify({ reportId, image_data: data, timestamp: new Date().toISOString() })
+      });
+
+      if (!response.ok) throw new Error(`Mô hình ngoài trả về lỗi: ${response.status}`);
+      const result = await response.json();
+      res.json({ success: true, analysis: result });
+    } catch (error: any) {
+      console.error('External Model Error:', error);
+      res.status(500).json({ message: 'Lỗi khi kết nối với mô hình bên ngoài', error: error.message });
+    }
+  });
+
   // Get Stats for Dashboard
   app.get('/api/stats', (req, res) => {
     const totalReports = db.prepare('SELECT count(*) as count FROM reports').get() as any;

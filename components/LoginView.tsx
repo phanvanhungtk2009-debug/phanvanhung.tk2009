@@ -298,6 +298,16 @@ const LoginView: React.FC<LoginViewProps> = ({ onLogin }) => {
             >
               {isLoading ? 'Đang xử lý...' : (isRegistering ? 'Đăng ký tài khoản' : 'Đăng nhập Hệ thống')}
             </button>
+
+            {!isRegistering && (
+              <button
+                type="button"
+                onClick={() => onLogin({ username: 'guest', role: 'citizen', area: 'All', organizationName: 'Người dân' })}
+                className="w-full mt-4 bg-white text-teal-600 font-bold py-3 rounded-xl border-2 border-teal-100 hover:bg-teal-50 transition-all duration-300"
+              >
+                Tiếp tục với vai trò Người dân
+              </button>
+            )}
           </form>
           
           <div className="mt-6 text-center text-xs text-slate-400">

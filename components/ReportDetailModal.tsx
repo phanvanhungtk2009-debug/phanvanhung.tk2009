@@ -8,6 +8,7 @@ interface ReportDetailModalProps {
   report: EnvironmentalReport;
   onClose: () => void;
   onUpdateStatus: (reportId: string) => void;
+  onExternalAnalysis?: (reportId: string, mediaUrl: string) => Promise<any>;
 }
 
 const getStatusDetails = (status: ReportStatus) => {
@@ -23,8 +24,23 @@ const getStatusDetails = (status: ReportStatus) => {
   }
 };
 
-const ReportDetailModal: React.FC<ReportDetailModalProps> = ({ report, onClose, onUpdateStatus }) => {
+const ReportDetailModal: React.FC<ReportDetailModalProps> = ({ report, onClose, onUpdateStatus, onExternalAnalysis }) => {
   const statusDetails = getStatusDetails(report.status);
+  const [isAnalyzing, setIsAnalyzing] = React.useState(false);
+  const [externalResult, setExternalResult] = React.useState<any>(null);
+
+  const handleExternalAnalysis = async () => {
+    if (!onExternalAnalysis) return;
+    setIsAnalyzing(true);
+    try {
+      const result = await onExternalAnalysis(report.id, report.mediaUrl);
+      setExternalResult(result);
+    } catch (error) {
+      console.error(error);
+    } finally {
+      setIsAnalyzing(false);
+    }
+  };
 
   return (
     <div
@@ -107,8 +123,20 @@ const ReportDetailModal: React.FC<ReportDetailModalProps> = ({ report, onClose, 
               </div>
               
               <ReportCard analysis={report.aiAnalysis} />
+
+              {/* External Analysis Result Display */}
+              {externalResult && (
+                <div className="bg-indigo-50 border border-indigo-100 p-4 rounded-lg">
+                  <h4 className="text-sm font-bold text-indigo-800 mb-2 uppercase tracking-wider">Kết quả từ Mô hình Chuyên gia</h4>
+                  <div className="text-sm text-indigo-900 whitespace-pre-wrap">
+                    {typeof externalResult.analysis === 'string' 
+                      ? externalResult.analysis 
+                      : JSON.stringify(externalResult.analysis, null, 2)}
+                  </div>
+                </div>
+              )}
               
-              <div className="pt-2">
+              <div className="pt-2 space-y-3">
                  <h3 className="text-lg font-bold text-gray-800 mb-2">Hành động</h3>
                  <button
                   onClick={() => onUpdateStatus(report.id)}
@@ -116,6 +144,28 @@ const ReportDetailModal: React.FC<ReportDetailModalProps> = ({ report, onClose, 
                 >
                   Chuyển trạng thái tiếp theo
                 </button>
+
+                {onExternalAnalysis && (
+                  <button
+                    onClick={handleExternalAnalysis}
+                    disabled={isAnalyzing}
+                    className={`w-full flex items-center justify-center space-x-2 font-bold py-3 px-6 rounded-lg border-2 transition-all ${isAnalyzing ? 'bg-gray-100 text-gray-400 border-gray-200 cursor-not-allowed' : 'bg-white text-indigo-600 border-indigo-600 hover:bg-indigo-50'}`}
+                  >
+                    {isAnalyzing ? (
+                      <>
+                        <div className="w-5 h-5 border-2 border-indigo-600 border-t-transparent rounded-full animate-spin"></div>
+                        <span>Đang phân tích...</span>
+                      </>
+                    ) : (
+                      <>
+                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 10V3L4 14h7v7l9-11h-7z" />
+                        </svg>
+                        <span>Phân tích chuyên sâu (Mô hình ngoài)</span>
+                      </>
+                    )}
+                  </button>
+                )}
               </div>
 
             </div>

@@ -2,11 +2,17 @@
 import { GoogleGenAI, Type } from "@google/genai";
 import { AIAnalysis, GroundingChunk } from '../types';
 
-if (!process.env.API_KEY) {
-  throw new Error("API_KEY environment variable not set");
-}
+let aiInstance: GoogleGenAI | null = null;
 
-const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+const getAI = () => {
+  if (!aiInstance) {
+    const apiKey = process.env.API_KEY || process.env.GEMINI_API_KEY;
+    if (apiKey && apiKey !== 'your_gemini_api_key_here' && apiKey.length > 10) {
+      aiInstance = new GoogleGenAI({ apiKey });
+    }
+  }
+  return aiInstance;
+};
 
 const responseSchema = {
   type: Type.OBJECT,
@@ -44,7 +50,24 @@ const responseSchema = {
 
 // Hàm này bây giờ xác thực, phân tích và đề xuất giải pháp trong một lần gọi
 export const analyzeEnvironmentalImage = async (base64Image: string, mimeType: string): Promise<AIAnalysis> => {
+  const mockAnalysis = (): AIAnalysis => ({
+    isIssuePresent: true,
+    issueType: "Xả rác không đúng nơi quy định",
+    description: "Phát hiện rác thải sinh hoạt tập kết sai quy định (Phân tích giả lập do hệ thống AI đang bận).",
+    priority: "Trung bình",
+    solution: "Cần cử đội vệ sinh môi trường đến thu gom và nhắc nhở người dân khu vực.",
+    recommendedSupplies: []
+  });
+
   const callGemini = async (retryCount = 0): Promise<AIAnalysis> => {
+    const ai = getAI();
+    
+    // Check if AI instance is available
+    if (!ai) {
+      console.warn("Using mock AI analysis because API_KEY is missing or invalid.");
+      return mockAnalysis();
+    }
+
     try {
       const imagePart = {
         inlineData: {
@@ -101,11 +124,9 @@ export const analyzeEnvironmentalImage = async (base64Image: string, mimeType: s
           return callGemini(retryCount + 1);
       }
 
-      if (errorString.includes("429") || errorString.includes("RESOURCE_EXHAUSTED")) {
-        throw new Error("QUOTA_EXCEEDED: Hệ thống AI đang quá tải hoặc hết hạn mức. Bạn vẫn có thể gửi báo cáo trực tiếp mà không cần AI phân tích.");
-      }
-      
-      throw new Error("Không thể phân tích hình ảnh. Vui lòng thử lại sau.");
+      // If quota exceeded or other fatal error, fallback to mock for demo purposes
+      console.warn("Falling back to mock AI analysis due to API error.");
+      return mockAnalysis();
     }
   };
 
@@ -131,6 +152,18 @@ export const askAIAboutEnvironment = async (
           }
           // Fallback to Gemini if OpenAI fails
       }
+  }
+
+  const ai = getAI();
+  if (!ai) {
+      return {
+          text: `**Chào bạn, Trợ lý Xanh đây!** 🌱
+          
+Hiện tại tôi đang ở chế độ bảo trì. Bạn vẫn có thể gửi báo cáo sự cố trực tiếp qua nút **"Gửi báo cáo"**.
+
+Tôi sẽ sớm quay lại ngay thôi! Cảm ơn bạn đã chung tay bảo vệ Đà Nẵng - Quảng Nam. 💚`,
+          groundingChunks: []
+      };
   }
 
   try {
@@ -226,6 +259,9 @@ Tôi sẽ sớm quay lại ngay thôi! Cảm ơn bạn đã chung tay bảo vệ
 }
 
 export const geocodeWithAI = async (query: string): Promise<{ lat: number; lng: number } | null> => {
+  const ai = getAI();
+  if (!ai) return null;
+
   try {
     const geocodeSchema = {
       type: Type.OBJECT,

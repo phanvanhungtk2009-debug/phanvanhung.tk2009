@@ -278,6 +278,7 @@ const EnvironmentalMapView: React.FC<EnvironmentalMapViewProps> = ({ reports, po
     filteredReports.forEach(report => {
       // Logic xác định icon: Nếu có nhu yếu phẩm -> Dùng icon Phao cứu sinh, ngược lại dùng Pin
       const hasSupplies = report.aiAnalysis.recommendedSupplies && report.aiAnalysis.recommendedSupplies.length > 0;
+      const isHighPriority = report.aiAnalysis.priority === 'Cao';
       
       let icon;
       if (hasSupplies) {
@@ -285,18 +286,38 @@ const EnvironmentalMapView: React.FC<EnvironmentalMapViewProps> = ({ reports, po
       } else {
         // Fallback color if status is unknown
         const color = statusColors[report.status] || '#6b7280';
-        icon = createCustomIcon('pin', color);
+        
+        // Nếu là ưu tiên cao, thêm hiệu ứng đặc biệt
+        if (isHighPriority) {
+            icon = L.divIcon({
+                html: `
+                    <div class="relative flex items-center justify-center">
+                        <div class="absolute w-10 h-10 bg-red-500/40 rounded-full animate-ping"></div>
+                        ${getPinIconSVG('#ef4444')}
+                    </div>
+                `,
+                className: '',
+                iconSize: [40, 40],
+                iconAnchor: [20, 40],
+                popupAnchor: [0, -42],
+            });
+        } else {
+            icon = createCustomIcon('pin', color);
+        }
       }
 
       const marker = L.marker([report.latitude, report.longitude], { 
         icon,
-        zIndexOffset: hasSupplies ? 1000 : 0 // Ưu tiên hiển thị marker cứu trợ lên trên
+        zIndexOffset: hasSupplies || isHighPriority ? 1000 : 0 // Ưu tiên hiển thị marker cứu trợ hoặc ưu tiên cao lên trên
       });
 
       const issueType = report.aiAnalysis.issueType || 'Sự cố môi trường';
       let popupContent = `<b>${issueType}</b><br>${report.status}`;
       if (hasSupplies) {
           popupContent += `<br><span style="color: #ea580c; font-weight: bold;">⚠️ Cần/Có nhu yếu phẩm</span>`;
+      }
+      if (isHighPriority) {
+          popupContent += `<br><span style="color: #ef4444; font-weight: bold;">🚨 Ưu tiên: CAO</span>`;
       }
       
       marker.bindPopup(popupContent);
