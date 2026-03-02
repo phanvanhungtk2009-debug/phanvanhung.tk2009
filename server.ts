@@ -201,7 +201,7 @@ async function startServer() {
           }));
           return res.json(parsedReports);
         }
-        console.warn('Supabase fetch failed, falling back to SQLite:', error);
+        console.warn('Supabase fetch failed, falling back to SQLite:', error.message || error);
       }
 
       const reports = db.prepare('SELECT * FROM reports ORDER BY timestamp DESC').all();
@@ -311,9 +311,9 @@ async function startServer() {
           broadcast({ type: 'NEW_REPORT', report: { ...report, area, timestamp } });
           return res.status(201).json({ message: 'Report created successfully (Supabase)' });
         }
-        console.warn('Supabase insert failed, falling back to SQLite:', error);
-      } catch (err) {
-        console.error('Supabase error:', err);
+        console.warn('Supabase insert failed, falling back to SQLite:', error.message || error);
+      } catch (err: any) {
+        console.error('Supabase error:', err.message || err);
       }
     }
 
@@ -367,9 +367,9 @@ async function startServer() {
           broadcast({ type: 'REPORT_UPDATED', id, status });
           return res.json({ message: 'Status updated (Supabase)' });
         }
-        console.warn('Supabase update failed, falling back to SQLite:', error);
-      } catch (err) {
-        console.error('Supabase error during update:', err);
+        console.warn('Supabase update failed, falling back to SQLite:', error.message || error);
+      } catch (err: any) {
+        console.error('Supabase error during update:', err.message || err);
       }
     }
 
@@ -452,7 +452,7 @@ async function startServer() {
             recentActivity
           });
         }
-        console.warn('Supabase stats failed, falling back to SQLite:', error);
+        console.warn('Supabase stats failed, falling back to SQLite:', error.message || error);
       }
 
       const totalReports = db.prepare('SELECT count(*) as count FROM reports').get() as any;
