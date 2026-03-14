@@ -7,7 +7,17 @@ import jwt from 'jsonwebtoken';
 import bcrypt from 'bcryptjs';
 import db, { initDb } from './database';
 import { EnvironmentalReport } from './types';
-import { supabase } from './services/supabaseClient';
+import { supabase, isSupabaseConfigured } from './services/supabaseClient';
+
+const isIgnorableSupabaseError = (error: any) => {
+  if (!error) return true;
+  const msg = (error.message || String(error)).toLowerCase();
+  return error.code === '42P01' || 
+         msg.includes('could not find the table') || 
+         msg.includes('fetch failed') ||
+         msg.includes('network error') ||
+         msg.includes('failed to fetch');
+};
 
 const PORT = 3000;
 const JWT_SECRET = process.env.JWT_SECRET || 'secret-key-change-me';
@@ -57,7 +67,7 @@ async function startServer() {
       supabase: 'not_configured'
     };
 
-    if (process.env.VITE_SUPABASE_URL && process.env.VITE_SUPABASE_ANON_KEY) {
+    if (isSupabaseConfigured) {
       try {
         const { error } = await supabase.from('reports').select('id').limit(1);
         if (error) {
@@ -91,7 +101,7 @@ async function startServer() {
       let user: any = null;
 
       // Try Supabase first
-      if (process.env.VITE_SUPABASE_URL && process.env.VITE_SUPABASE_ANON_KEY) {
+      if (isSupabaseConfigured) {
         const { data, error } = await supabase
           .from('users')
           .select('*')
@@ -100,7 +110,7 @@ async function startServer() {
         
         if (!error && data) {
           user = data;
-        } else if (error && !(error.code === '42P01' || error.message?.includes('Could not find the table'))) {
+        } else if (error && !isIgnorableSupabaseError(error)) {
           console.warn('Supabase login check failed:', error.message);
         }
       }
@@ -150,7 +160,7 @@ async function startServer() {
       const hashedPassword = bcrypt.hashSync(password, 10);
 
       // Try Supabase first
-      if (process.env.VITE_SUPABASE_URL && process.env.VITE_SUPABASE_ANON_KEY) {
+      if (isSupabaseConfigured) {
         try {
           // Check if user exists in Supabase
           const { data: existingUser } = await supabase
@@ -178,12 +188,11 @@ async function startServer() {
             return res.status(201).json({ message: 'Đăng ký tài khoản thành công (Supabase). Bạn có thể đăng nhập ngay.' });
           }
           
-          const isTableNotFound = error.code === '42P01' || error.message?.includes('Could not find the table');
-          if (!isTableNotFound) {
+          if (!isIgnorableSupabaseError(error)) {
             console.warn('Supabase register failed, falling back to SQLite:', error.message || error);
           }
         } catch (err: any) {
-          if (!err.message?.includes('Could not find the table')) {
+          if (!isIgnorableSupabaseError(err)) {
             console.error('Supabase error during registration:', err.message || err);
           }
         }
@@ -215,7 +224,7 @@ let supabaseTableErrorLogged = false;
   app.get('/api/reports', async (req, res) => {
     try {
       // Try Supabase first if configured
-      if (process.env.VITE_SUPABASE_URL && process.env.VITE_SUPABASE_ANON_KEY) {
+      if (isSupabaseConfigured) {
         const { data, error } = await supabase
           .from('reports')
           .select('*')
@@ -236,9 +245,8 @@ let supabaseTableErrorLogged = false;
           return res.json(parsedReports);
         }
         
-        // Silence "Table not found" errors as they are expected before initial setup
-        const isTableNotFound = error?.code === '42P01' || (error?.message && error.message.includes('Could not find the table'));
-        if (!isTableNotFound) {
+        // Silence expected errors before initial setup or network issues
+        if (!isIgnorableSupabaseError(error)) {
           console.warn('Supabase fetch failed:', error?.message || error);
         }
       }
@@ -325,7 +333,7 @@ let supabaseTableErrorLogged = false;
     const timestamp = new Date().toISOString();
 
     // Try Supabase first
-    if (process.env.VITE_SUPABASE_URL && process.env.VITE_SUPABASE_ANON_KEY) {
+    if (isSupabaseConfigured) {
       try {
         const { error } = await supabase
           .from('reports')
@@ -351,12 +359,11 @@ let supabaseTableErrorLogged = false;
           return res.status(201).json({ message: 'Report created successfully (Supabase)' });
         }
         
-        const isTableNotFound = error.code === '42P01' || error.message?.includes('Could not find the table');
-        if (!isTableNotFound) {
+        if (!isIgnorableSupabaseError(error)) {
           console.warn('Supabase insert failed, falling back to SQLite:', error.message || error);
         }
       } catch (err: any) {
-        if (!err.message?.includes('Could not find the table')) {
+        if (!isIgnorableSupabaseError(err)) {
           console.error('Supabase error:', err.message || err);
         }
       }
@@ -441,7 +448,7 @@ let supabaseTableErrorLogged = false;
       const reportTimestamp = report.timestamp || timestamp;
 
       // Try Supabase
-      if (process.env.VITE_SUPABASE_URL && process.env.VITE_SUPABASE_ANON_KEY) {
+      if (isSupabaseConfigured) {
         try {
           const { error } = await supabase.from('reports').insert([{
             id: report.id,
@@ -463,12 +470,11 @@ let supabaseTableErrorLogged = false;
             results.success++;
             continue;
           }
-          const isTableNotFound = error.code === '42P01' || error.message?.includes('Could not find the table');
-          if (!isTableNotFound) {
+          if (!isIgnorableSupabaseError(error)) {
              console.warn('Supabase bulk insert failed:', error.message);
           }
         } catch (err: any) {
-          if (!err.message?.includes('Could not find the table')) {
+          if (!isIgnorableSupabaseError(err)) {
             console.error('Supabase bulk insert error:', err);
           }
         }
@@ -503,7 +509,7 @@ let supabaseTableErrorLogged = false;
     const { status } = req.body;
     
     // Try Supabase first
-    if (process.env.VITE_SUPABASE_URL && process.env.VITE_SUPABASE_ANON_KEY) {
+    if (isSupabaseConfigured) {
       try {
         const { error } = await supabase
           .from('reports')
@@ -515,12 +521,11 @@ let supabaseTableErrorLogged = false;
           return res.json({ message: 'Status updated (Supabase)' });
         }
         
-        const isTableNotFound = error.code === '42P01' || error.message?.includes('Could not find the table');
-        if (!isTableNotFound) {
+        if (!isIgnorableSupabaseError(error)) {
           console.warn('Supabase update failed, falling back to SQLite:', error.message || error);
         }
       } catch (err: any) {
-        if (!err.message?.includes('Could not find the table')) {
+        if (!isIgnorableSupabaseError(err)) {
           console.error('Supabase error during update:', err.message || err);
         }
       }
@@ -571,7 +576,7 @@ let supabaseTableErrorLogged = false;
   app.get('/api/stats', async (req, res) => {
     try {
       // Try Supabase first
-      if (process.env.VITE_SUPABASE_URL && process.env.VITE_SUPABASE_ANON_KEY) {
+      if (isSupabaseConfigured) {
         const { data: reports, error } = await supabase
           .from('reports')
           .select('priority, status, area, id, issueType, timestamp');
@@ -606,8 +611,7 @@ let supabaseTableErrorLogged = false;
           });
         }
         
-        const isTableNotFound = error?.code === '42P01' || (error?.message && error.message.includes('Could not find the table'));
-        if (!isTableNotFound) {
+        if (!isIgnorableSupabaseError(error)) {
           console.warn('Supabase stats failed:', error.message || error);
         }
       }

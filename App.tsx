@@ -101,11 +101,20 @@ const App: React.FC = () => {
   const [pendingReportsCount, setPendingReportsCount] = useState<number>(0);
   const [isOfflineModalOpen, setIsOfflineModalOpen] = useState(false);
 
-  // Load user from local storage
+  // Load user from local storage and handle URL parameters (NFC trigger)
   useEffect(() => {
     const storedUser = localStorage.getItem('user');
     if (storedUser) {
       setUser(JSON.parse(storedUser));
+    }
+
+    // Check for URL parameters (e.g., ?view=sos)
+    const params = new URLSearchParams(window.location.search);
+    const viewParam = params.get('view');
+    if (viewParam === 'sos') {
+      setView('sos');
+      // Clear the parameter from URL without reloading to keep it clean
+      window.history.replaceState({}, document.title, window.location.pathname);
     }
   }, []);
 
